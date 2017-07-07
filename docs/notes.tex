@@ -38,6 +38,10 @@
 \maketitle
 
 %=========================================================================
+\section{Finite Element Approach}
+%=========================================================================
+
+%=========================================================================
 \subsection{Introduction}
 %=========================================================================
 
@@ -223,6 +227,74 @@ x &=& \mathbf{u}^{r+1}, \\
 b &=& 2\,\mathbf{u}^{r}\left(M - \dfrac{2 h_0^2}{3}A\right) - \mathbf{u}^{r-1} \left(M + \dfrac{h_0^2}{6}A\right)
 \end{eqnarray}
 
+%=========================================================================
+\section{Discretized Lagrangian Approach}
+%=========================================================================
+
+In the previous section, we started with the equations of motion followed by a
+spacetime discretization to arrive at the numerical implementation of the
+problem. However, we can instead start by discretizing the Lagrangian to
+arrive at a similar implicit time-stepping scheme, which is the focus of this
+section. For a discrete formulation of the action princple, we begin by
+discretizing in time ($t_n$), and approximating the discrete Lagrangian for a
+time interval $(t_n, t_{n+1})$
+\begin{equation}
+\label{discretized_lagrangian}
+L_d(q_{n}, q_{n+1}) \approx \int\limits_{t_n}^{t_{n+1}} L(q, \dot{q})\, \textrm{d}t,
+\end{equation}
+where $q_n = q(t_n)$ is a sequence of configuations in time. We can then
+approximate the action integral as
+\begin{equation}
+S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=0}^{N-1} \,L_d (q_n, q_{n+1})
+\approx \int\limits_{0}^{T} L(q, \dot{q})\, \textrm{d}t.
+\end{equation}
+Now, if we deman that the variation $\delta S_d(q_0, q_1, ..., q_N) = 0$, for
+the true configuration at each time level, then the variation of the discrete
+action can be written as
+\begin{equation}
+\label{variation}
+\delta S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=0}^{N-1} \left[D_1 \,L_d (q_n, q_{n+1})\cdot \delta q_n 
++ D_2\,L_d (q_n, q_{n+1})\cdot \delta q_{n+1}\right].
+\end{equation}
+Using summation by parts on the second term in Eq.~(\ref{variation}), and the
+fact that the variation at the end points vanish $(\delta q_0 = \delta q_N = 0)$,
+we get
+\begin{equation}
+\delta S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=1}^{N-1}  \left[ D_1 \,L_d (q_{n}, q_{n+1})\cdot \delta q_n 
++ D_2\,L_d (q_{n-1}, q_{n}) \right] \cdot \delta q_{n},
+\end{equation}
+which gives us
+\begin{equation}
+\label{finalform_variational}
+ \left[ D_1 \,L_d (q_{n}, q_{n+1})\cdot \delta q_n 
++ D_2\,L_d (q_{n-1}, q_{n}) \right] = 0, \quad n = 1, 2,...,N-1,
+\end{equation}
+which gives an implicit time-stepping scheme to go from $(q_{n-1}, q_n)$ to $(q_n, q_n+1)$ at each time level $n$. Here, $D_i$ refers to the 
+partial derivative operator with respect to the $i^{th}$ argument in $L_{d}$. The task now, is to construct the discretized
+Lagrangian $L_d$, as we do below, for a scalar wave equation in 1D. \\
+
+
+Consider the Lagrangian a free scalar wave equation
+\begin{equation}
+L = \dfrac{1}{2} \eta^{\alpha \beta}\, \partial_{\alpha} u\, \partial_{\beta} u, 
+\end{equation}
+Invoking Eq.~(\ref{discretized_lagrangian}), we can write the discretized Lagrangian, for a 1D scalar wave equation as 
+\begin{eqnarray}
+L_d &=& \sum\limits_{i=1}^{m} \sum\limits_{j=1}^{n} w_{ij}\, L^{ij} \approx \int L\, dx\, dt,\\
+L_{ij} &=& \dfrac{1}{2} \left[ - D_{t}\, u(t_i,x_j)~ D_{t}\,u(t_i,x_j) + D_{x}\, u(t_i,x_j)~ D_{x}\,u(t_i,x_j)\right],
+\end{eqnarray}
+Further, rewriting $u(t_i, x_j)$ as
+\begin{equation}
+u(t_i, x_j) = \sum\limits_{p=0}^{m}\sum\limits_{q=0}^{n}\tilde{u}_p^q \, \tilde{\phi}_p(x_j)\, \tilde{\psi}_q(t_i), \\
+\end{equation}
+and expanding the summation of $\alpha$ and $\beta$, we arrive at
+\begin{equation}
+L_{ij} = \dfrac{1}{2} \sum\limits_{p=0}^{m}\sum\limits_{q=0}^{n} (\tilde{u}_p^q)^2 \left( - \left[\, \tilde{\phi}_p(x_j)\right]^2 \left[D_t \tilde{\psi}_q(t_i)\right]^2 + \left[\, \tilde{\psi}_p(t_i)\right]^2 \left[D_x \tilde{\phi}_j(x_i)\right]^2\right),
+\end{equation}
+Therefore, the discretized Lagrangian is of the form \textcolor{red}{[This won't work---no free index]}
+\begin{equation}
+L_d = \dfrac{1}{2} \sum\limits_{i=1}^{m} \sum\limits_{j=1}^{n}  w_{ij} \sum\limits_{p=0}^{m}\sum\limits_{q=0}^{n} (\tilde{u}_p^q)^2 \left( - \left[\, \tilde{\phi}_p(x_j)\right]^2 \left[D_t \tilde{\psi}_q(t_i)\right]^2 + \left[\, \tilde{\psi}_p(t_i)\right]^2 \left[D_x \tilde{\phi}_j(x_i)\right]^2\right),
+\end{equation}
 
 \bibliography{notes}
 \end{document}

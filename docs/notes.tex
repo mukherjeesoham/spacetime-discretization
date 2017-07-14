@@ -308,17 +308,20 @@ form as
 \begin{equation}
 S_d = \dfrac{1}{2} \mathbf{u}^T \mathbf{C}\, \mathbf{u}; \qquad \mathbf{C} = w^{pq}\, \eta^{ab} \, D_{ak}^p \, D_{bl}^q.
 \end{equation}
-\label{main}
 Now, given the method of integration, and the choice of basis functions we can
 construct the matrix $C$. It's a quadratic form, i.e. $S_d$ is a scalar.
 Therefore, our problem reduces to finding the vector $u^l$, such that the
 scalar $S_d$ is extremum. This is done by requiring
 \begin{equation}
+\label{main}
 \dfrac{\partial S_d}{d\mathbf{u}} = 0 = \mathbf{u}^T (\mathbf{C} + \mathbf{C}^T)
 \end{equation}
 where the last equality is a standard result applicable to quadratic forms.
-Therefore, to get the solution, we solve the homogenous system of linear
-equations given by Eq.~(\ref{main}).
+Therefore, to get the solution, we solve the homogenous system of
+\textcolor{red}{linear} equations given by Eq.~(\ref{main}). However, we also
+need to impose boundary conditions. To do this, we can construct an operator $B_{ck}$, that sets the 
+elements of the vector $\mathbf{u}$ appropriately.
+
 
 \bibliography{notes}
 \end{document}

@@ -152,7 +152,7 @@ plt.show()
 N = 10
 x = np.linspace(-1, 1, N)
 
-if(0):	#test hat functions
+if(1):	#test hat functions
 	y = np.zeros(N)
 	plt.plot(x, np.zeros(len(x)), 'o')
 	for i in range(1, N-1):

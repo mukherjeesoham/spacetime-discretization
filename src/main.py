@@ -4,82 +4,87 @@
 #==========================================================
 
 import numpy as np
-import cheb as cb
+import utilities as util
 import matplotlib.pyplot as plt
 from numpy import linalg as LA
 
-N = 10
+N = 3
 
-# Setting up a NxN (t, x) cheb grid
-D0, t = cb.cheb(N) 
-D1, x = cb.cheb(N) 
-xx,tt = np.meshgrid(t,x)
+# Setting up a (N+1) x (N+1) points (t, x) cheb grid
+D0, t = util.cheb(N) 
+D1, x = util.cheb(N) 
 
 if(0):	#plot grid
-	plt.plot(xx, tt, 'g')
-	plt.plot(tt, xx, 'm')
+	xx,tt = np.meshgrid(t,x)
+	plt.plot(xx, tt, 'r-o')
+	plt.plot(tt, xx, 'r-o')
+	
+	plt.plot(tt[0], xx[0], 'g-o')
+	plt.plot(tt[-1], xx[-1], 'g-o')
+
+	plt.plot(tt[:, 0], xx[:, 0], 'm-o')
+	plt.plot(tt[:, -1], xx[:, -1], 'm-o')
+
+	plt.ylim(-1.2, 1.2)
+	plt.xlim(-1.2, 1.2)
 	plt.xlabel(r"$x$")
 	plt.ylabel(r"$t$")
 	plt.show()
 
-# Now construct the differentiation matrices
-# XXX: We do not take only the interior points since 
-# we'll impose constraints there. 
-
+# construct the differentiation matrices
 D20 = np.dot(D0,D0)
 D21 = np.dot(D1,D1)
 I   = np.eye(N+1)	
 
-# construct the main derivative operator
+# construct the weight matrix
+V = np.outer(util.clencurt(N), util.clencurt(N))
+W = np.outer(np.ravel(V), np.ravel(V))
+
+# construct the main operator
 D = -np.kron(I,D20) + np.kron(D21,I)
+A = np.dot(D, W)
+A = A + np.transpose(A)
 
-#construc the integration matrix using trapezoidal rule
-dt = np.ediff1d(t)
-dx = np.ediff1d(x)
-W  = 4*np.ones(np.shape(D))
+#impose boundary conditions
+A = np.lib.pad(A, (0,4*(N+1) - 4), 'constant', constant_values=(0))
 
-# set all edge values
-W[:,0] = W[:,-1] = W[0,:] = W[-1,:] = 2
-# set all corner values
-W[0,0] = W[0,-1] =  W[-1,0] = W[-1,-1] = 1
+# FIXME: Very hacky way of setting the boundary values. Think of something smarter.
+# loc = [0, 1, 2, 3, 4,    5,    6, 7, 8, 11, 12, 15]
+# BC  = [0, 1, 1, 0, 0, 0.01, 0.01, 0, 0 ,0 , 0,   0]
 
-# FIXME: Note that the grid is no longer uniform. 
-if(0):
-	for index, val in np.ndenumerate(W):
-		W[index] = val*dt[index[0]]*dx[index[1]]
+loc = [0, 1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15]
+BC  = [0, 1, 1, 0, 0, 0, 0 ,0 , 0,  0,   0, 0]
+row = 0
 
-# construct the final matrix C
-A = np.dot(W, D)
-F = np.transpose(A) + A
+for _k in loc:
+	A[row+16][_k] = 1
+	A[_k][row+16] = 1
+	row +=1
 
 # find Eigenvalues (w) and Eigen vectors (v)
-# XXX: These are complex quantities. What to visualize?
-w, v = LA.eig(F)
+w, v = LA.eig(A)
 
 if(0):
 	plt.plot(w, 'ro')
+	plt.axhline([0])
 	plt.title("Eigen Values")
 	plt.show()
 
 if(0):
-	plt.plot(v, '-')
+	plt.plot(v[:,2], '-')
 	plt.title("Eigen Vectors")
 	plt.show()	
 
-# solve the system of equations [See how to solve homogenous system
-# of equations. lingalg.solve won't work. We might need to find the null space vectors.]
-# np.linalg.solve(F)
+#solve the system
+b = np.zeros((N+1)**2.0)
+b = np.hstack((b, BC))
 
-# Use a vector b to constraint the solution in the first two time steps
-u = np.zeros((len(t),len(x)))
+u = np.linalg.solve(A, b)
+u = u[:(N+1)**2]
+uu = np.reshape(u, (N+1, N+1))
 
-# impose the boundary conditions
-u[:, 0]  = +np.exp((x-0.0001)**2.0/10.25)
-u[:, 1]  = +np.exp((x-0.0001)**2.0/10.25)
-u[0, :]  = -1.2
-u[-1, :] = -1.2
-
-uu = np.ravel(u)
-
-# now solve with linalg [Unfortunately this doesn't work either]
-# uu = np.linalg.solve(F, uu)
+if(1):
+	for t, i in enumerate(uu):
+		plt.plot(i, label='t=%r'%t)
+	plt.legend()
+	plt.show()

@@ -36,7 +36,55 @@
 \title{Solving the scalar wave equation using spacetime discretization}
 \date{\today}
 \maketitle
+\subsection{Discretized Lagrangian Approach}
+Consider the Lagrangian density $\mathcal{L}$ for a free scalar wave equation,
+that is used to extremize the action $\mathcal{S}$
+\begin{equation}
+\label{action_continous}
+S = \int \textrm{d}x\,\textrm{d}t~\mathcal{L} =  \int  \left[\dfrac{1}{2}
+\eta^{\alpha \beta}\, \partial_{\alpha} u\, \partial_{\beta} u\right]~
+\textrm{d}x\,\textrm{d}t.
+\end{equation}
+We wish to find a solution vector $\mathbf{u}$ over a $N\times N$ spacetime
+grid. Thus $\mathbf{u}$ is a vector of length $N\times N$. Now, we write the
+discretized version of Eq.~(\ref{action_continous}), by first replacing the
+continous integral with a summation, and replacing the derivatives by
+derivative operators. Note, that the summation is over spacetime points.
+\begin{equation}
+\label{action_discrete}
+S_d = \dfrac{1}{2} \sum\limits_{p=0}^{N\times N}\sum\limits_{q=0}^{N\times N} w^{pq}\, \eta_{ab} \, D_{pk}^a u^{k}\, D_{ql}^b u^{l} 
+\end{equation}
+The matrix $w^{pq}$ (an outer product of one-dimensional Curtis-Clenshaw
+weights) corresponds to the integration weights at each point on the spacetime
+grid. Further, the derivative operator $D^a_{pk}$ corresponds to the
+derivative of the vector $u^k$ evaluated at $p$. Concretly, the operator can be expressed as 
+\begin{equation}
+\eta_{ab} \, D_{pk}^a\, D_{ql}^b = - \rm{I}\otimes D_t^2 +  D_x^2\otimes\rm{I}
+\end{equation}
+for a (1+1) dimensionsal case, which gives a square matrix of dimension $(N\times N)$.\\
 
+
+Eq.~(\ref{action_discrete}), therefore, can be written in terms of a quadratic
+form as
+\begin{equation}
+S_d = \dfrac{1}{2} \mathbf{u}^T \mathbf{C}\, \mathbf{u}; \qquad \mathbf{C} = w^{pq}\, \eta^{ab} \, D_{ak}^p \, D_{bl}^q.
+\end{equation}
+Now, given the method of integration, and the choice of basis functions we can
+construct the matrix $C$. It's a quadratic form, i.e. $S_d$ is a scalar.
+Therefore, our problem reduces to finding the vector $u^l$, such that the
+scalar $S_d$ is extremum. This is done by requiring
+\begin{equation}
+\label{main}
+\dfrac{\partial S_d}{d\mathbf{u}} = 0 = \dfrac{1}{2}\mathbf{u}^T (\mathbf{C} + \mathbf{C}^T)
+\end{equation}
+where the last equality is a standard result applicable to quadratic forms.
+Therefore, to get the solution, we solve the homogenous system of
+\textcolor{red}{linear} equations given by Eq.~(\ref{main}). \\
+
+For imposing boundary conditions, we use the method of Lagrange multipliers, since this seems the 
+most general and intiutive way to do this.
+
+\appendix
 %=========================================================================
 \section{Finite Element Approach}
 %=========================================================================
@@ -228,7 +276,7 @@ b &=& 2\,\mathbf{u}^{r}\left(M - \dfrac{2 h_0^2}{3}A\right) - \mathbf{u}^{r-1} \
 \end{eqnarray}
 
 %=========================================================================
-\section{Discretized Lagrangian Approach}
+\section{Discretized Euler-Lagrange Equations Approach}
 %=========================================================================
 
 In the previous section, we started with the equations of motion followed by a
@@ -270,58 +318,6 @@ which gives us
 + D_2\,L_d (q_{n-1}, q_{n}) \right] = 0, \quad n = 1, 2,...,N-1,
 \end{equation}
 which gives an implicit time-stepping scheme to go from $(q_{n-1}, q_n)$ to $(q_n, q_n+1)$ at each time level $n$. \\
-
-\subsection{Discretized Lagrangian}
-Consider the Lagrangian density $\mathcal{L}$ for a free scalar wave equation,
-that is used to extremize the action $\mathcal{S}$
-\begin{equation}
-\label{action_continous}
-S = \int \textrm{d}x\,\textrm{d}t~\mathcal{L} =  \int  \left[\dfrac{1}{2} \eta^{\alpha \beta}\, \partial_{\alpha} u\, \partial_{\beta} u\right]~ \textrm{d}x\,\textrm{d}t.
-\end{equation}
-We wish to find a solution u (more precisely the coefficents $\tilde{u}^{ij}$)
-where
-\begin{equation}
-\label{spectral_expansion}
-u^{nm} = \sum\limits_{i=0}^N\sum\limits_{j=0}^{M} \tilde{u}^{ij} \phi_i(x_n)\psi_j(t_m),
-\end{equation}
-over a $N\times M$ spacetime grid. Concretely, $u^{mn}$ corresponds to the
-value of the field at a point $(x_n, t_m)$ in spacetime, and $\phi_i(x)$ and
-$\psi_j(t)$ are the basis (hat) functions in space and time dimensions. To
-simplify the notation, we represent the solution matrix $u^{mn}$ as a vector
-$\mathbf{u}$ of length $N \times M$.
-
-Now, we write the discretized version of Eq.~(\ref{action_continous}), by
-first replacing the continous integral with a summation, and replacing the
-derivatives by derivative operators. Note, that the summation is over
-spacetime points.
-\begin{equation}
-\label{action_discrete}
-S_d = \dfrac{1}{2} \sum\limits_{p=0}^{N\times M}\sum\limits_{q=0}^{N\times M} w^{pq}\, \eta^{ab} \, D_{ak}^p u^{k}\, D_{bl}^q u^{l} 
-\end{equation}
-The matrix $w^{pq}$ corresponds to the integration weights at each point on
-the spacetime grid. Further, the derivative operator $D^p_{ak}$ corresponds to
-the derivative of the vector $u^k$ evaluated at $p$ in the direction ($t,x$)
-given by $a$. Note that Even though $D^p_{ak}$ has 3 indices, it's essentially
-justs a matrix, and the type of matrix changes depending on the third index.
-Eq.~(\ref{action_discrete}), therefore, can be written in terms of a quadratic
-form as
-\begin{equation}
-S_d = \dfrac{1}{2} \mathbf{u}^T \mathbf{C}\, \mathbf{u}; \qquad \mathbf{C} = w^{pq}\, \eta^{ab} \, D_{ak}^p \, D_{bl}^q.
-\end{equation}
-Now, given the method of integration, and the choice of basis functions we can
-construct the matrix $C$. It's a quadratic form, i.e. $S_d$ is a scalar.
-Therefore, our problem reduces to finding the vector $u^l$, such that the
-scalar $S_d$ is extremum. This is done by requiring
-\begin{equation}
-\label{main}
-\dfrac{\partial S_d}{d\mathbf{u}} = 0 = \mathbf{u}^T (\mathbf{C} + \mathbf{C}^T)
-\end{equation}
-where the last equality is a standard result applicable to quadratic forms.
-Therefore, to get the solution, we solve the homogenous system of
-\textcolor{red}{linear} equations given by Eq.~(\ref{main}). However, we also
-need to impose boundary conditions. To do this, we can construct an operator $B_{ck}$, that sets the 
-elements of the vector $\mathbf{u}$ appropriately.
-
 
 \bibliography{notes}
 \end{document}

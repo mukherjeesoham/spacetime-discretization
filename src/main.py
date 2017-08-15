@@ -1,21 +1,35 @@
 #==========================================================
 # Code to solve the scalar wave equation using a 
 # discretized lagrangian
+# Soham 2017
 #==========================================================
 
 import numpy as np
 import utilities as util
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from numpy import linalg as LA
+from matplotlib import cm
+from scipy import interpolate
 
+# FIXME: > Singular matrix with projection operators
+#		 > For very low resolution the solver works
+#		 > for Poisson eqn. However for wave equation, 
+#		 > things don't work equally well.
+			
+#------------------------------------------------
+# Grid
+#------------------------------------------------
+
+# Creates N+1 points.
 N = 3
 
-# Setting up a (N+1) x (N+1) points (t, x) cheb grid
+# Construct Chebyshev differentiation matrices.
 D0, t = util.cheb(N) 
 D1, x = util.cheb(N) 
+xx,tt = np.meshgrid(t,x)
 
 if(0):	#plot grid
-	xx,tt = np.meshgrid(t,x)
+
 	plt.plot(xx, tt, 'r-o')
 	plt.plot(tt, xx, 'r-o')
 	
@@ -31,60 +45,106 @@ if(0):	#plot grid
 	plt.ylabel(r"$t$")
 	plt.show()
 
-# construct the differentiation matrices
-D20 = np.dot(D0,D0)
-D21 = np.dot(D1,D1)
+#------------------------------------------------
+# Construct operators
+#------------------------------------------------
+
+
+
+# Construct the derivative operator (acting on u)
 I   = np.eye(N+1)	
+D   = np.kron(I,np.dot(D0, D0)) + np.kron(np.dot(D1, D1), I)
 
 # construct the weight matrix
 V = np.outer(util.clencurt(N), util.clencurt(N))
-W = np.outer(np.ravel(V), np.ravel(V))
+W = np.diag(np.ravel(V)) + np.diag(np.ravel(V))
 
-# construct the main operator
-D = -np.kron(I,D20) + np.kron(D21,I)
-A = np.dot(D, W)
+# construct the integral + operator
+A = D.dot(W)
 A = A + np.transpose(A)
 
-#impose boundary conditions
-A = np.lib.pad(A, (0,4*(N+1) - 4), 'constant', constant_values=(0))
+# construct projection operators
+B = np.zeros((N+1,N+1))
 
-# FIXME: Very hacky way of setting the boundary values. Think of something smarter.
-# loc = [0, 1, 2, 3, 4,    5,    6, 7, 8, 11, 12, 15]
-# BC  = [0, 1, 1, 0, 0, 0.01, 0.01, 0, 0 ,0 , 0,   0]
+#first derivative
+B[0] =  1
+BN = np.dot(np.diag(np.ravel(B)), np.kron(I,D0))	
 
-loc = [0, 1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15]
-BC  = [0, 1, 1, 0, 0, 0, 0 ,0 , 0,  0,   0, 0]
-row = 0
+#bordering points
+B[:, 0] = B[:, -1]= B[0] = B[-1] = 1
+BD = np.diag(np.ravel(B))
 
-for _k in loc:
-	A[row+16][_k] = 1
-	A[_k][row+16] = 1
-	row +=1
+#------------------------------------------------
+# Solve
+#------------------------------------------------
 
-# find Eigenvalues (w) and Eigen vectors (v)
-w, v = LA.eig(A)
+if(1):	# in case you want to use Lagrange multipliers 
+	A  = np.lib.pad(A, (0,4*(N+1)-4), 'constant', constant_values=(0))
+	BC = np.where(np.diag(BD) > 0)[0]
+	for _i, _j in enumerate(np.arange((N+1)**2, (N+1)**2 + 4*(N+1)-4)):
+		A[BC[_i]][_j] = A[_j][BC[_i]] = 1
+	
+	# construct b
+	uu = np.zeros((N+1, N+1))
 
-if(0):
-	plt.plot(w, 'ro')
-	plt.axhline([0])
-	plt.title("Eigen Values")
-	plt.show()
+	#set the boundary conditions here.
+	uu[0] = uu[-1] = 0
+	uu[:, 0] = uu[:, -1] = 10
+	
+	b = np.ravel(uu)[np.where(np.diag(BD) > 0)[0]]
+	b = np.append(np.zeros((N+1)**2), b)
 
-if(0):
-	plt.plot(v[:,2], '-')
-	plt.title("Eigen Vectors")
-	plt.show()	
+	# solve the system
+	print("Solving a dimension %r linear system..."%np.shape(A)[0])
+	u = np.linalg.solve(A, b)
+	uu = np.reshape(u[:(N+1)**2.0], (N+1, N+1))
+	print("Completed solve.")
 
-#solve the system
-b = np.zeros((N+1)**2.0)
-b = np.hstack((b, BC))
+else:	# FIXME: Singular Matrix
+	A = A.dot(BD).dot(BN)	#dot with the differential operators you need.
+	
+	uu = np.zeros((N+1, N+1))
+	#set the boundary conditions here.
+	uu[0] = uu[-1] = 0
+	uu[:, 0] = uu[:, -1] = 10	
+	b = np.ravel(uu)
+	
+	# solve the system
+	print("Solving a dimension %r linear system..."%np.shape(A)[0])
+	u = np.linalg.solve(A, b)
+	uu = np.reshape(u, (N+1, N+1))
+	print("Completed solve.")
 
-u = np.linalg.solve(A, b)
-u = u[:(N+1)**2]
-uu = np.reshape(u, (N+1, N+1))
 
-if(1):
-	for t, i in enumerate(uu):
-		plt.plot(i, label='t=%r'%t)
-	plt.legend()
+#------------------------------------------------
+#analysis
+#------------------------------------------------
+if(0):	# find Eigenvalues (w) and Eigen vectors (v)
+	w, v = LA.eig(A)
+	if(1):
+		plt.semilogy(w, 'ro')
+		plt.axhline([0])
+		plt.title("Eigen Values")
+		plt.show()
+
+	if(0):
+		plt.plot(v[:,2], '-')
+		plt.title("Eigen Vectors")
+		plt.show()	
+
+if(0):	#interpolate or not?
+	print("Interpolating grid.")
+	f = interpolate.interp2d(x, t, uu, kind='cubic')
+	xnew = np.linspace(-1, 1, 1e+2)
+	ynew = np.linspace(-1, 1, 1e+2)
+	Z = f(xnew, ynew)
+	X, Y = np.meshgrid(xnew, ynew)
+else:
+	Z = uu
+	X, Y = np.meshgrid(t, x)
+
+if(1):	#plot
+	fig = plt.figure()
+	ax = fig.gca(projection='3d')
+	ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
 	plt.show()

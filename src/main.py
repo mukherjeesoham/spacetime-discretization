@@ -11,57 +11,35 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy import interpolate
 
-# FIXME: > Singular matrix with projection operators
-#		 > For very low resolution the solver works
-#		 > for Poisson eqn. However for wave equation, 
-#		 > things don't work equally well.
-			
 #------------------------------------------------
 # Grid
 #------------------------------------------------
 
 # Creates N+1 points.
-N = 3
+N = 4
 
 # Construct Chebyshev differentiation matrices.
 D0, t = util.cheb(N) 
 D1, x = util.cheb(N) 
 xx,tt = np.meshgrid(t,x)
 
-if(0):	#plot grid
-
-	plt.plot(xx, tt, 'r-o')
-	plt.plot(tt, xx, 'r-o')
-	
-	plt.plot(tt[0], xx[0], 'g-o')
-	plt.plot(tt[-1], xx[-1], 'g-o')
-
-	plt.plot(tt[:, 0], xx[:, 0], 'm-o')
-	plt.plot(tt[:, -1], xx[:, -1], 'm-o')
-
-	plt.ylim(-1.2, 1.2)
-	plt.xlim(-1.2, 1.2)
-	plt.xlabel(r"$x$")
-	plt.ylabel(r"$t$")
-	plt.show()
+if(1):
+	util.plotgrid(xx, tt)
 
 #------------------------------------------------
 # Construct operators
 #------------------------------------------------
 
-
-
-# Construct the derivative operator (acting on u)
+# Construct the derivative operator
 I   = np.eye(N+1)	
 D   = np.kron(I,np.dot(D0, D0)) + np.kron(np.dot(D1, D1), I)
 
-# construct the weight matrix
+# construct the weight matrix [XXX: Check]
 V = np.outer(util.clencurt(N), util.clencurt(N))
 W = np.diag(np.ravel(V)) + np.diag(np.ravel(V))
 
 # construct the integral + operator
 A = D.dot(W)
-A = A + np.transpose(A)
 
 # construct projection operators
 B = np.zeros((N+1,N+1))
@@ -84,13 +62,18 @@ if(1):	# in case you want to use Lagrange multipliers
 	for _i, _j in enumerate(np.arange((N+1)**2, (N+1)**2 + 4*(N+1)-4)):
 		A[BC[_i]][_j] = A[_j][BC[_i]] = 1
 	
+	# XXX: Testing position of A
+	A = A + np.transpose(A)
+
 	# construct b
 	uu = np.zeros((N+1, N+1))
 
 	#set the boundary conditions here.
-	uu[0] = uu[-1] = 0
-	uu[:, 0] = uu[:, -1] = 10
-	
+	uu[-1]    = 0
+	uu[0]     = 0
+	uu[:, 0]  = 1
+	uu[:, -1] = 1
+
 	b = np.ravel(uu)[np.where(np.diag(BD) > 0)[0]]
 	b = np.append(np.zeros((N+1)**2), b)
 
@@ -106,7 +89,7 @@ else:	# FIXME: Singular Matrix
 	uu = np.zeros((N+1, N+1))
 	#set the boundary conditions here.
 	uu[0] = uu[-1] = 0
-	uu[:, 0] = uu[:, -1] = 10	
+	uu[:, 0] = uu[:, -1] = -10	
 	b = np.ravel(uu)
 	
 	# solve the system
@@ -119,9 +102,10 @@ else:	# FIXME: Singular Matrix
 #------------------------------------------------
 #analysis
 #------------------------------------------------
-if(0):	# find Eigenvalues (w) and Eigen vectors (v)
-	w, v = LA.eig(A)
-	if(1):
+if(1):	# find Eigenvalues (w) and Eigen vectors (v)
+	w, v = np.linalg.eig(A)
+	print np.allclose(w, 0)
+	if(0):
 		plt.semilogy(w, 'ro')
 		plt.axhline([0])
 		plt.title("Eigen Values")
@@ -135,8 +119,8 @@ if(0):	# find Eigenvalues (w) and Eigen vectors (v)
 if(0):	#interpolate or not?
 	print("Interpolating grid.")
 	f = interpolate.interp2d(x, t, uu, kind='cubic')
-	xnew = np.linspace(-1, 1, 1e+2)
-	ynew = np.linspace(-1, 1, 1e+2)
+	xnew = np.linspace(-1, 1, 40)
+	ynew = np.linspace(-1, 1, 40)
 	Z = f(xnew, ynew)
 	X, Y = np.meshgrid(xnew, ynew)
 else:
@@ -147,4 +131,5 @@ if(1):	#plot
 	fig = plt.figure()
 	ax = fig.gca(projection='3d')
 	ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+	# plt.contourf(xnew, ynew, Z)
 	plt.show()

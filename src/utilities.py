@@ -49,18 +49,19 @@ def clencurt(N):
 
 # function to plot the chebychev grid
 def plotgrid(xx, tt):
-	import matplotlib.pyplot as plt
-	plt.plot(xx, tt, 'r-o')
-	plt.plot(tt, xx, 'r-o')
-	
-	plt.plot(tt[0], xx[0], 'y-o')
-	plt.plot(tt[-1], xx[-1], 'y-o')
+  import matplotlib.pyplot as plt
+  plt.plot(xx, tt, 'r-o')
+  plt.plot(tt, xx, 'r-o')
 
-	plt.plot(tt[:, 0], xx[:, 0], 'm-o')
-	plt.plot(tt[:, -1], xx[:, -1], 'm-o')
+  plt.plot(tt[0], xx[0], 'y-o')
+  plt.plot(tt[-1], xx[-1], 'y-o')
 
-	plt.ylim(-1.2, 1.2)
-	plt.xlim(-1.2, 1.2)
-	plt.xlabel(r"$x$")
-	plt.ylabel(r"$t$")
-	plt.savefig("../output/grid.png")
+  plt.plot(tt[:, 0], xx[:, 0], 'm-o')
+  plt.plot(tt[:, -1], xx[:, -1], 'm-o')
+
+  plt.ylim(-1.2, 1.2)
+  plt.xlim(-1.2, 1.2)
+  plt.xlabel(r"$x$")
+  plt.ylabel(r"$t$")
+  plt.savefig("../output/chebgrid.png")
+  plt.close()

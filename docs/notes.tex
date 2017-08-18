@@ -52,20 +52,19 @@ continous integral with a summation, and replacing the derivatives by
 derivative operators. Note, that the summation is over spacetime points.
 \begin{equation}
 \label{action_discrete}
-S_d = \dfrac{1}{2} \sum\limits_{p=0}^{N\times N}\sum\limits_{q=0}^{N\times N} w^{pq}\, \eta_{ab} \, D_{pk}^a u^{k}\, D_{ql}^b u^{l} 
+S_d = \dfrac{1}{2} \sum\limits_{p=0}^{N\times N}\sum\limits_{q=0}^{N\times N} w_{pq}\, \eta^{ab} \, D_{ak}^p u^{k}\, D_{bl}^q u^{l} 
 \end{equation}
 The matrix $w^{pq}$ (an outer product of one-dimensional Curtis-Clenshaw
 weights) corresponds to the integration weights at each point on the spacetime
-grid. Further, the derivative operator $D^a_{pk}$ corresponds to the
-derivative of the vector $u^k$ evaluated at $p$. Concretly, the operator can be expressed as 
+grid, arranged along the diagonal of a $(N\times N)$ matrix. Further, the
+derivative operator $D^a_{pk}$ corresponds to the derivative of the vector
+$u^k$ evaluated at $p$. Concretly, the operator can be expressed as
 \begin{equation}
-\eta_{ab} \, D_{pk}^a\, D_{ql}^b = - \rm{I}\otimes D_t^2 +  D_x^2\otimes\rm{I}
+\eta^{ab} \, D_{ak}^p\, D_{bl}^q = - \rm{I}\otimes D_t^2 +  D_x^2\otimes\rm{I}
 \end{equation}
-for a (1+1) dimensionsal case, which gives a square matrix of dimension $(N\times N)$.\\
-
-
-Eq.~(\ref{action_discrete}), therefore, can be written in terms of a quadratic
-form as
+for a (1+1) dimensionsal case, which gives a square matrix of dimension
+$(N\times N)$. Eq.~(\ref{action_discrete}), therefore, can be written in terms
+of a quadratic form as
 \begin{equation}
 S_d = \dfrac{1}{2} \mathbf{u}^T \mathbf{C}\, \mathbf{u}; \qquad \mathbf{C} = w^{pq}\, \eta^{ab} \, D_{ak}^p \, D_{bl}^q.
 \end{equation}
@@ -79,10 +78,20 @@ scalar $S_d$ is extremum. This is done by requiring
 \end{equation}
 where the last equality is a standard result applicable to quadratic forms.
 Therefore, to get the solution, we solve the homogenous system of
-\textcolor{red}{linear} equations given by Eq.~(\ref{main}). \\
+linear equations given by Eq.~(\ref{main}). For us, the form of Eq.~(\ref{main}) isn't the most
+intuitive. We can also write the result of the minization as
+\begin{equation}
+\label{solve}
+\dfrac{1}{2}(\mathbf{C} + \mathbf{C}^T)\mathbf{u} = 0 
+\end{equation}
+by manipulating the second term of the derivative instead of the
+first term.\footnote{For a quick reference, see Eq.~(46) in
+\href{http://www.atmos.washington.edu/~dennis/MatrixCalculus.pdf}{this
+document.}}\\
 
-For imposing boundary conditions, we use the method of Lagrange multipliers, since this seems the 
-most general and intiutive way to do this.
+We now impose constraints (i.e. boundary conditions) on Eq.~(\ref{solve}). For
+imposing boundary conditions, we can use the method of Lagrange multipliers or
+projection operators $\mathbf{B}$. 
 
 \appendix
 %=========================================================================

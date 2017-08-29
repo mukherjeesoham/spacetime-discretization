@@ -10,13 +10,15 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy import interpolate
+import time
+
 
 #------------------------------------------------
 # Grid
 #------------------------------------------------
 
 # Creates N+1 points.
-N = 3
+N = 40
 
 # Construct Chebyshev differentiation matrices.
 D0, t = util.cheb(N) 
@@ -39,8 +41,8 @@ V = np.outer(util.clencurt(N), util.clencurt(N))
 W = np.diag(np.ravel(V))
 
 # construct the main operator
-A = D.dot(W)
-A = A + np.transpose(A)
+A = W.dot(D)
+# A = A + np.transpose(A)
 
 #------------------------------------------------
 # Construct templates for boundary operators
@@ -56,14 +58,16 @@ BD = np.ravel(loc_BD)
 # Impose boundary conditions [using Lagrange multipliers]
 #------------------------------------------------
 
-# Pad the matrix to add extra rows and columns
-A  = np.lib.pad(A,  (0, len(BD[BD==1])), 'constant', constant_values=(0))
+def unitvec(A, index):
+	A[index] = np.zeros(np.shape(A)[0])
+	A[index][index] = 1.0
+	return A
 
 # construct the vector to be used 
 # for imposing the boundary conditions
 BC = np.where(BD==1)[0]
-for _i, _j in enumerate(np.arange((N+1)**2, (N+1)**2 + len(BD[BD==1]))):
-	A[BC[_i]][_j] = A[_j][BC[_i]] = 1
+for _r in BC:
+	unitvec(A, _r)
 
 # assemble the final matrix F
 F  = A
@@ -74,33 +78,31 @@ b  = np.zeros((N+1)**2)
 
 # set the Dirichlet boundary values
 uu = np.zeros((N+1, N+1))
-uu[:, 0]  = 0
-uu[:, -1] = 0
-uu[-1]    = 0
-uu[0]     = - np.sin(np.pi*x)	# imposes at (x, y=1)
+uu[:, 0]  = 0.0
+uu[:, -1] = 0.0
+uu[-1]    = 0.0
+uu[0]     = - np.sin(np.pi*x) #-(x**2.0 - 1)
 
 uu_boudary = np.copy(uu)
-u = np.ravel(uu)
-print u
-u = u[np.where(np.ravel(loc_BD)==1)[0]]
-b = np.append(b, u)
+b = np.ravel(uu)
 
 #------------------------------------------------
 # solve the system
 #------------------------------------------------
 
 print("Solving a dimension %r linear system..."%np.shape(F)[0])
-if np.linalg.det(F) != 0:	
-	u = np.linalg.solve(F, b)
-	uu = np.reshape(u[:(N+1)**2], (N+1, N+1))
-	print("Completed solve.")
-else:
-	print "Encountered Singular Matrix. Aborting solver."
+start = time.time()
+u = np.linalg.solve(F, b)
+end = time.time()
+print "Time taken by solver: %rs" %(end - start)
+uu = np.reshape(u[:(N+1)**2], (N+1, N+1))
+print("Completed solve.")
+
 
 #------------------------------------------------
 #analysis
 #------------------------------------------------
-if(1):	# find Eigenvalues (w) and Eigen vectors (v)
+if(0):	# find Eigenvalues (w) and Eigen vectors (v)
 	print "\nAnalysing the F matrix..."
 	w, v = np.linalg.eig(F)
 
@@ -111,11 +113,11 @@ if(1):	# find Eigenvalues (w) and Eigen vectors (v)
 	plt.close()
 
 def solution(X, Y):
-	S = (1.0/(np.sinh(np.pi)))*(np.sin(np.pi*(X+1))*np.sinh(np.pi*(Y+1)))
+	S = (1.0/(np.sinh(2*np.pi)))*(np.sin(np.pi*(X+1))*np.sinh(np.pi*(Y+1)))
 	return S
 
 if(1):	#plot the solution
-	if(1):	#interpolate or not?
+	if(0):	#interpolate or not?
 		print("Interpolating grid.")
 		f    = interpolate.interp2d(x, t, uu, kind='cubic')
 		xnew = np.linspace(-1, 1, 30)
@@ -139,7 +141,7 @@ if(1):	#plot the solution
 	if(0):	# BCs
 		ax.plot_wireframe(xx, tt, uu_boudary, rstride=1, cstride=1)
 	elif(0):	# analytical solution
-		ax.plot_wireframe(X, Y, S, rstride=1, cstride=1, color='m', linewidth=0.7)
+		ax.plot_wireframe(X, Y, S, rstride=1, cstride=1, color='r', linewidth=0.7)
 	else:		# computed solution
-		ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='b', linewidth=0.5)
+		ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='b', linewidth=0.4)
 	plt.show()

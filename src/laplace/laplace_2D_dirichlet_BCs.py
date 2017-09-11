@@ -131,10 +131,10 @@ if(1):	#plot the solution
 	else:
 		Z    = uu
 		X, Y = np.meshgrid(x, y)
-		S =  np.loadtxt("../solutions/solution_chebnodes.dat")
-
-		Err  = np.sqrt(np.mean((Z - S)**2.0))
-		print "N = %r \t Error: %r "%(N+1, Err)
+		if(1):
+			S =  np.loadtxt("../solutions/solution_chebnodes.dat")
+			Err  = np.sqrt(np.mean((Z - S)**2.0))
+			print "N = %r \t Error: %r "%(N+1, Err)
 
 	fig = plt.figure()
 	ax = fig.gca(projection='3d')
@@ -145,6 +145,6 @@ if(1):	#plot the solution
 	elif(1):	# analytical solution
 		ax.plot_wireframe(X, Y, S, rstride=1, cstride=1, color='r', linewidth=0.4)
 	# else:		# computed solution
-		# ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='b', linewidth=0.4, linestyle='--')
-		ax.scatter(X, Y, Z, s=2.4)
+		ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='b', linewidth=0.4, linestyle='--')
+		# ax.scatter(X, Y, Z, s=2.4)
 	plt.show()

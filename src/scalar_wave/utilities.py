@@ -63,5 +63,5 @@ def plotgrid(xx, tt):
   plt.xlim(-1.2, 1.2)
   plt.xlabel(r"$x$")
   plt.ylabel(r"$t$")
-  plt.savefig("../output/chebgrid.png")
+  plt.savefig("../../output/chebgrid.png")
   plt.close()

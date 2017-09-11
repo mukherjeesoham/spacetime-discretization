@@ -11,22 +11,21 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy import interpolate
 import time
-import laplace_solutions as ls
 
 #------------------------------------------------
 # Grid
 #------------------------------------------------
 
 # Creates N+1 points.
-N = 10
+N = 40
 
 # Construct Chebyshev differentiation matrices.
-D0, x = util.cheb(N)
-D1, y = util.cheb(N)
-xx, yy = np.meshgrid(x,y)
+D0, t = util.cheb(N)
+D1, x = util.cheb(N)
+tt, xx = np.meshgrid(t,x)
 
 if(1):
-	util.plotgrid(xx, yy)
+	util.plotgrid(tt, xx)
 
 #------------------------------------------------
 # Construct derivate + integral operators
@@ -34,16 +33,15 @@ if(1):
 
 # Construct the derivative operator
 I = np.eye(N+1)
-D = -np.kron(I,np.dot(D0, D0)) + np.kron(np.dot(D1, D1), I)
-Dx = np.kron(I, D0)
-Dy = np.kron(D1, I)
+D = - np.kron(I,np.dot(D0, D0)) + np.kron(np.dot(D1, D1), I)
+Dt = np.kron(I, D0)
+Dx = np.kron(D1, I)
 
 # construct the weight matrix
 V = np.outer(util.clencurt(N), util.clencurt(N))
 W = np.diag(np.ravel(V))
 
 # construct the main operator
-# XXX: Note that we don't symmetrize this operator
 A = W.dot(D)
 
 #------------------------------------------------
@@ -53,10 +51,10 @@ A = W.dot(D)
 # Choose the boundary points on
 # three sides of the grid and flatten the array out.
 loc_BC = np.zeros((N+1,N+1))
-loc_BC[0]     = 1	#  (x,  1)
-loc_BC[-1]    = 1	#  (x, -1)
-loc_BC[:, 0]  = -1	# ( 1,  y)
-loc_BC[:, -1] = -1	# (-1,  y)
+loc_BC[0]     = -1	#  (x,  1) final time
+loc_BC[-1]    = 1	#  (x, -1) intial time
+loc_BC[:, 0]  = 1	# ( 1,  y) left boundary 
+loc_BC[:, -1] = 1	# (-1,  y) right boundary
 
 BC = np.ravel(loc_BC)
 
@@ -88,8 +86,8 @@ b  = np.zeros((N+1)**2)
 uu = np.zeros((N+1, N+1))
 uu[:, 0]  = 0.0
 uu[:, -1] = 0.0
-uu[-1]    = 0.0
-uu[0]     = - np.sin(np.pi*x) #2.0 #-(x**2.0 - 1) #
+uu[-1]    = - np.sin(np.pi*x) #2.0 #-(x**2.0 - 1) #
+uu[0]     = 0.0
 
 uu_boudary = np.copy(uu)
 b = np.ravel(uu)
@@ -122,29 +120,29 @@ if(0):	# find Eigenvalues (w) and Eigen vectors (v)
 if(1):	#plot the solution
 	if(0):	#interpolate or not?
 		print("Interpolating grid.")
-		f    = interpolate.interp2d(x, t, uu, kind='cubic')
+		f    = interpolate.interp2d(t, x, uu, kind='cubic')
 		xnew = np.linspace(-1, 1, 30)
 		ynew = np.linspace(-1, 1, 30)
 		Z    = f(xnew, ynew)
 		X, Y = np.meshgrid(xnew, ynew)
-		S    = ls.simple_BCs(X, Y)
-		Err  = np.sqrt(np.mean((Z - S)**2.0))
-		print "N = %r \t Error: %r "%(N+1, Err)
+		# S    = ls.simple_BCs(X, Y)
+		# Err  = np.sqrt(np.mean((Z - S)**2.0))
+		# print "N = %r \t Error: %r "%(N+1, Err)
 	else:
 		Z    = uu
-		X, Y = np.meshgrid(x, y)
-		S    = ls.simple_BCs(X, Y)
-		Err  = np.sqrt(np.mean((Z - S)**2.0))
+		X, Y = np.meshgrid(t, x)
+		# S    = ls.simple_BCs(X, Y)
+		# Err  = np.sqrt(np.mean((Z - S)**2.0))
 		# print "N = %r \t Error: %r "%(N+1, Err)
 
 	fig = plt.figure()
 	ax = fig.gca(projection='3d')
 	plt.xlabel("x")
-	plt.ylabel("y")
-	if(1):	# BCs
+	plt.ylabel("t")
+	if(0):	# BCs
 		ax.plot_wireframe(xx, yy, uu_boudary, rstride=1, cstride=1)
 	elif(0):	# analytical solution
 		ax.plot_wireframe(X, Y, S, rstride=1, cstride=1, color='r', linewidth=0.4)
 	else:		# computed solution
-		ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='b', linewidth=0.4)
+		ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='m', linewidth=0.6)
 	plt.show()

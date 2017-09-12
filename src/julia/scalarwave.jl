@@ -16,7 +16,7 @@ function cheb(N)
         D  = - reshape(kron(c', 1./c'), N+1, N+1)./(dX + eye(N+1))
         D  = D - diagm(vec(sum(D,1)))
     end    
-    (D, x)
+    return D, x
 end
 
 function clencurt(N)
@@ -38,5 +38,78 @@ function clencurt(N)
             end
         end
         w[2:N] = 2.0*v/N
-        (w)
+        return w
 end
+
+# XXX: Generalize this function for arbitrary dimensions
+function operator(N)
+    D0, t = cheb(N)
+    D1, x = cheb(N)
+    I  = eye(N+1)
+    D  = - kron(I,D0^2) + kron(D1^2, I)
+
+    V = kron(clencurt(N), clencurt(N)')
+    W = diagm(vec(V))
+    A = W*D
+
+    return A
+end
+
+# FIXME: things still need to be set by hand. 
+function boundary(N, A)
+
+    D0, t = cheb(N)
+    D1, x = cheb(N)
+
+    BC = zeros(N+1, N+1)
+    bb = zeros(N+1, N+1)
+    
+    BC[:, 1]   =  1
+    BC[:, N+1] =  1
+    BC[1, :]   =  1
+    BC[N+1, :] = -1
+
+    bb[:, 1]   =  - sinpi.(x)
+    bb[:, N+1] =  0.0
+    bb[1, :]   =  0.0
+    bb[N+1, :] =  0.0
+
+    # FIXME: Don't recompute
+    D0, t = cheb(N)
+    D1, x = cheb(N)
+    I  = eye(N+1)
+    Dt = kron(I, D0)
+    Dx = kron(D1, I)
+
+    for (index, value) in enumerate(BC)
+        if value==1
+            A[index,:] = zeros((N+1)^2)
+            A[index, index] = 1.0
+        elseif value==-1
+            A[index,:] = Dt[index, :]
+        end
+    end
+
+   return A, vec(bb)
+end
+
+function solve(N, A, b)
+    uu = A \ b
+    uu = reshape(uu, N+1, N+1)
+    return uu
+end
+
+function analysis(A)
+    return eig(A)
+end
+
+function main(N)
+    println("Constructing operator")
+    A    = @time operator(N)
+    println("Setting boundary conditions")
+    A, b = @time boundary(N, A)
+    println("Solving the system")
+    uu   = @time solve(N, A, b)
+end
+
+main(10)

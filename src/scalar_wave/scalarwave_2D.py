@@ -17,7 +17,7 @@ import time
 #------------------------------------------------
 
 # Creates N+1 points.
-N = 4
+N = 40
 
 # Construct Chebyshev differentiation matrices.
 D0, t = util.cheb(N)
@@ -37,7 +37,6 @@ D = - np.kron(I,np.dot(D0, D0)) + np.kron(np.dot(D1, D1), I)
 Dt = np.kron(I, D0)
 Dx = np.kron(D1, I)
 
-print np.shape(D0)
 # construct the weight matrix
 V = np.outer(util.clencurt(N), util.clencurt(N))
 W = np.diag(np.ravel(V))

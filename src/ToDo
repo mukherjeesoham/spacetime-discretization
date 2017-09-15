@@ -1,0 +1,34 @@
+==> Laplace equation
+    > The errors aren't converging away for higher resolutions.
+        [Odd, because I use almost exactly the same code for the wave equation.
+        Could it be an issue due to inconsistent boundary conditions?]
+
+    > Solving the checking the solution for higher dimensional laplace equation.
+
+==> Scalar wave equation
+    > Converges nicely to 10^-15 for n=20 points.
+    > Simulate the 3+1 wave equation? How do we 'moderately' efficiently deal with 
+    boundary conditions?
+    > Why is Mathematica acting strange when I try to solve the same thing? 
+
+==> Julia Implementation
+    > I can't seem to be able to plot! 
+    [WxPython fails, when PyCall asks for it. PlotLy throws up some other nasty error,
+    which I haven't really checked what it says.]
+
+    > Check the wave equation implementation again. Something seems to be going wrong
+    at comparing the solution stage. 
+
+    > [Ask Erik] What's the smart way extend the current code for arbitrary dimenions?
+    Also, Julia seems to be slower than Python. 
+
+    For a 81x81 matrix solve:
+        6.065783 seconds   {Python}
+        6.307086 seconds   {Julia}
+
+==> Next steps?
+    > Solve the 3+1 scalar wave equation in Python and Julia. 
+    > Profile their performance: time spent, allocation etc. 
+    > Add a source term to the wave equation and/or solve the Poisson equation 
+        [introduce non-linearities in the code]
+    

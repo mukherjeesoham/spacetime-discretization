@@ -112,4 +112,4 @@ function main(N)
     uu   = @time solve(N, A, b)
 end
 
-main(10)
+main(40)

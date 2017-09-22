@@ -27,16 +27,12 @@ D1, y = util.cheb(N)
 xx, yy = np.meshgrid(x,y)
 
 fig, ax = plt.subplots(nrows=1, ncols=2)
-
-
-ax[0].plot(xx,yy, 'o')
+ax[0].plot(xx,yy, 'mo')
 
 
 # TSEM grid
-
 u = ((1 + xx)*(1-yy)/4.0)
 v = (1 + yy)/2.0
 
-
-ax[1].plot(u, v, 'o')
+ax[1].plot(u, v, 'mo')
 plt.show()

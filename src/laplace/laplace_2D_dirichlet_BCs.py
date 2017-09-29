@@ -52,9 +52,9 @@ A = W.dot(D)
 # three sides of the grid and flatten the array out.
 loc_BC = np.zeros((N+1,N+1))
 loc_BC[0]     = 1	# (x, 0)
-loc_BC[-1]    = 1	# (x, -1)
-loc_BC[:, 0]  = -1	# (0, y)
-loc_BC[:, -1] = -1	#(-1, y)
+loc_BC[-1]    = -1	# (x, -1)
+loc_BC[:, 0]  = 1	# (0, y)
+loc_BC[:, -1] = 1	#(-1, y)
 
 BC = np.ravel(loc_BC)
 
@@ -86,8 +86,8 @@ b  = np.zeros((N+1)**2)
 uu = np.zeros((N+1, N+1))
 uu[:, 0]  = 0.0
 uu[:, -1] = 0.0
-uu[-1]    = 0.0
-uu[0]     = -(x**2.0 - 1) #- np.sin(np.pi*x)
+uu[-1]    = - np.sin(np.pi*x)
+uu[0]     = + np.cos(np.pi*x) + 1
 
 uu_boudary = np.copy(uu)
 b = np.ravel(uu)
@@ -131,7 +131,7 @@ if(1):	#plot the solution
 	else:
 		Z    = uu
 		X, Y = np.meshgrid(x, y)
-		if(1):
+		if(0):
 			S =  np.loadtxt("../solutions/solution_chebnodes.dat")
 			Err  = np.sqrt(np.mean((Z - S)**2.0))
 			print "N = %r \t Error: %r "%(N+1, Err)
@@ -142,9 +142,9 @@ if(1):	#plot the solution
 	plt.ylabel("y")
 	if(0):	# BCs
 		ax.plot_wireframe(xx, yy, uu_boudary, rstride=1, cstride=1)
-	elif(1):	# analytical solution
+	elif(0):	# analytical solution
 		ax.plot_wireframe(X, Y, S, rstride=1, cstride=1, color='r', linewidth=0.4)
-	# else:		# computed solution
+	else:		# computed solution
 		ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='b', linewidth=0.4, linestyle='--')
-		# ax.scatter(X, Y, Z, s=2.4)
+		print Z[12][5]
 	plt.show()

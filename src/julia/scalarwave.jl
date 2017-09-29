@@ -55,32 +55,27 @@ function operator(N)
     return A
 end
 
-# FIXME: things still need to be set by hand. 
 function boundary(N, A)
-
     D0, t = cheb(N)
     D1, x = cheb(N)
+
+    I  = eye(N+1)
+    Dx = kron(I, D0)
+    Dt = kron(D1, I)
 
     BC = zeros(N+1, N+1)
     bb = zeros(N+1, N+1)
     
-    BC[:, 1]   =  1
-    BC[:, N+1] =  1
-    BC[1, :]   =  1
-    BC[N+1, :] = -1
+    BC[N+1, :]= BC[:, N+1] = BC[:, 1] = BC[1, :] = 1
 
-    bb[:, 1]   =  - sinpi.(x)
+    bb[:, 1]   =  0.0
+    bb[1, :]   =  - sinpi.(x)
     bb[:, N+1] =  0.0
-    bb[1, :]   =  0.0
     bb[N+1, :] =  0.0
 
-    # FIXME: Don't recompute
-    D0, t = cheb(N)
-    D1, x = cheb(N)
-    I  = eye(N+1)
-    Dt = kron(I, D0)
-    Dx = kron(D1, I)
-
+    # FIXME: Don't loop over this. Set them all at once.
+    # SEE: Python implementation
+    
     for (index, value) in enumerate(BC)
         if value==1
             A[index,:] = zeros((N+1)^2)
@@ -112,4 +107,4 @@ function main(N)
     uu   = @time solve(N, A, b)
 end
 
-main(40)
+main(3)

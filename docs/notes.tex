@@ -36,7 +36,7 @@
 \title{Solving the scalar wave equation using spacetime discretization}
 \date{\today}
 \maketitle
-\subsection{Discretized Lagrangian Approach}
+\subsection{Discretizing the Action}
 Consider the Lagrangian density $\mathcal{L}$ for a free scalar wave equation,
 that is used to extremize the action $\mathcal{S}$
 \begin{equation}
@@ -77,21 +77,46 @@ scalar $S_d$ is extremum. This is done by requiring
 \dfrac{\partial S_d}{d\mathbf{u}} = 0 = \dfrac{1}{2}\mathbf{u}^T (\mathbf{C} + \mathbf{C}^T)
 \end{equation}
 where the last equality is a standard result applicable to quadratic forms.
-Therefore, to get the solution, we solve the homogenous system of
-linear equations given by Eq.~(\ref{main}). For us, the form of Eq.~(\ref{main}) isn't the most
-intuitive. We can also write the result of the minization as
+Therefore, to get the solution, we solve the homogenous system of linear
+equations given by Eq.~(\ref{main}). For us, the form of Eq.~(\ref{main})
+isn't the most intuitive. We can also write the result of the minization as
 \begin{equation}
 \label{solve}
-\dfrac{1}{2}(\mathbf{C} + \mathbf{C}^T)\mathbf{u} = 0 
+\dfrac{1}{2}(\mathbf{C} + \mathbf{C}^T)~\mathbf{u} = \mathbf{b} 
 \end{equation}
-by manipulating the second term of the derivative instead of the
-first term.\footnote{For a quick reference, see Eq.~(46) in
+by manipulating the second term of the derivative instead of the first
+term.\footnote{For a quick reference, see Eq.~(46) in
 \href{http://www.atmos.washington.edu/~dennis/MatrixCalculus.pdf}{this
-document.}}\\
+document.}} Note, however, the matrix $\mathbf{C}$ is
+symmetric\footnote{\textcolor{red}{This needs checking. In our implementation,
+the matrix A is not symmetric. However, symmetrizing the matrix leads to the
+wrong solution.}}, we can just solve the system $\mathbf{C}\mathbf{u} =
+\mathbf{b}  $, where $\mathbf{b} $ contains the conditions imposed by the
+evolution equation and the boundary conditions.\\
 
-We now impose constraints (i.e. boundary conditions) on Eq.~(\ref{solve}). For
-imposing boundary conditions, we can use the method of Lagrange multipliers or
-projection operators $\mathbf{B}$. 
+The above formalism has been succesfully implemented in Python for the 1D
+scalar wave equation in Cartesian coordinates, and extending it to higher
+dimensions seems straightforward at the moment. We know wish to evolve the 
+scalar wave equation in null coordinates. To begin, we define two new coordinates 
+$(u,v)$ such that
+\begin{equation}
+u = t - r, \qquad v = t + r,
+\end{equation}
+which immediately leads us to the inverse transformation
+\begin{equation}
+t = \dfrac{u + v}{2}, \qquad r = \dfrac{v - u}{2}.
+\end{equation}
+Since we'd still be working in 1D, the notation is consistent with 1D scalar
+wave equation in Cartesian coordinates. We now calculate how the
+action (see Eq.~\ref{action_continous}) looks, in these new coordinates. We get
+\begin{equation}
+S = \int \mathcal{L}(u,v) |\det(J)|\,du\,dv,
+\end{equation}
+where
+\begin{equation}
+\mathcal{L}(u,v) = ( \partial_v + \partial_u)\phi ~(\partial_v - \partial_v)\phi 
+\end{equation}
+
 
 \appendix
 %=========================================================================

@@ -7,6 +7,7 @@
 import numpy as np
 import utilities as util
 import matplotlib.pyplot as plt
+from joblib import Parallel, delayed
 
 def operator(N):
 	Du, u  = util.cheb(N-1)

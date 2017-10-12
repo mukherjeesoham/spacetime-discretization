@@ -100,7 +100,7 @@ def main(N):
 #===================================================
 
 # single solution
-if(1):
+if(0):
 	L2, zz, uu, vv, ss, runtime =main(40)
 
 	if(1):
@@ -122,8 +122,8 @@ if(1):
 		plt.show()
 
 # convergence
-if(0):
-	N   = [3, 7, 15, 31]
+if(1):
+	N   = [3, 7, 15, 31, 63]
 	Err  = np.zeros(len(N))
 	Time = np.zeros(len(N))
 

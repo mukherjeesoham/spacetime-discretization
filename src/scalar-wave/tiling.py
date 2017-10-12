@@ -8,6 +8,9 @@ import numpy as np
 import utilities as util
 import matplotlib.pyplot as plt
 
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+
 def operator(N):
 	Du, u  = util.cheb(N-1)
 	Dv, v  = util.cheb(N-1)
@@ -24,6 +27,9 @@ def operator(N):
 
 	return A
 
+def initialdata(u, v):
+	return np.sin(np.pi*u)
+
 def boundary(A, X, index, grid):
 
 	N = int(np.power(np.size(A), 0.25))
@@ -38,18 +44,18 @@ def boundary(A, X, index, grid):
 	b  = np.zeros((N, N))
 
 	if np.sum(index) == 0:				# it's the first box, relax.
-		b[:,  0] = np.sin(np.pi*u)
-		b[0,  :] = np.sin(np.pi*v)
+		b[:,  0] = initialdata(u, v)
+		b[0,  :] = initialdata(v, u)
 	elif np.prod(index) == 0:			#it's at the boundary.
 		if index[0] > index[1]:
 			_i = index - [1,0]
 			if grid[1][_i[0]][_i[1]] == 1:
-				b[:, 0] = np.sin(np.pi*u)
+				b[:, 0] = initialdata(u, v)
 				b[0, :] = X[_i[0], _i[1]][-1, :]
 		else:					
 			_k = index - [0,1]
 			if grid[1][_k[0]][_k[1]] == 1:
-				b[0, :] = np.sin(np.pi*u)
+				b[0, :] = initialdata(v, u)
 				b[:, 0] = X[_k[0], _k[1]][:, -1]
 	else:								#it's somewhere in the middle. 
 		_i = index - [1,0]
@@ -93,5 +99,26 @@ def main(M,N):
 	return assemblegrid(M,N,X)
 
 X = main(4,20)
-plt.imshow(X)
-plt.show()
+
+if(1):
+	plt.imshow(X)
+	plt.show()
+
+if(0):
+	fig = plt.figure()
+	ax = fig.gca(projection='3d')
+	plt.xlabel(r"$u$")
+	plt.ylabel(r"$v$")
+
+	Z = cm.viridis_r((X-X.min())/(X.max()-X.min()))
+
+	Du, u  = util.cheb(19)
+	Dv, v  = util.cheb(19)
+	uu, vv = np.meshgrid(u,v)
+
+	surf = ax.plot_surface(uu, vv, X, rstride=1, cstride=1, 
+		facecolors = Z, shade=False, linewidth=0.6)
+
+	surf.set_facecolor((0,0,0,0))
+	plt.show()
+

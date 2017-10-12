@@ -110,248 +110,257 @@ Since we'd still be working in 1D, the notation is consistent with 1D scalar
 wave equation in Cartesian coordinates. We now calculate how the
 action (see Eq.~\ref{action_continous}) looks, in these new coordinates. We get
 \begin{equation}
-S = \int \mathcal{L}(u,v) |\det(J)|\,du\,dv,
+S = \dfrac{1}{2} \int \eta^{uv}\partial_u\phi ~\partial_v\phi  \sqrt{-\eta}\,du\,dv,
 \end{equation}
-where
+where $\eta^{uv}$ is the Minkowski metric in $(u,v)$ coordinates. However, if
+we further introduce a conformal compactification, we get an additional term 
+since the Ricci scalar is no longer zero. Thus, we'd now have 
 \begin{equation}
-\mathcal{L}(u,v) = ( \partial_v + \partial_u)\phi ~(\partial_v - \partial_v)\phi 
+S = \dfrac{1}{2}\int \left[ \tilde{\eta}^{uv}\partial_u\phi ~\partial_v\phi + \tilde{R} \right] \sqrt{-\tilde{\eta}}\,du\,dv,
 \end{equation}
+where $\tilde{\eta}^{uv}$ and $\tilde{R}$ are the metric tensor, and the Ricci
+scalar for the conformally compactified Minkowski spacetime. Further, if we
+consider a massive scalar field with a time-varying potential, we can add two
+additional terms to get such an action for the system:
+\begin{equation}
+S = \dfrac{1}{2}\int \left[ -\tilde{\eta}^{uv}\partial_u\phi ~\partial_v\phi + m^2\phi + V(\phi) + \tilde{R} \right] \sqrt{-\tilde{\eta}}\,du\,dv.
+\end{equation}
+If we adopt the hyperboloidal scri-fixing coordinates the authors of \cite{Zenginolu} adopt, then we have
 
+% \appendix
+% %=========================================================================
+% \section{Finite Element Approach}
+% %=========================================================================
 
-\appendix
-%=========================================================================
-\section{Finite Element Approach}
-%=========================================================================
+% %=========================================================================
+% \subsection{Introduction}
+% %=========================================================================
 
-%=========================================================================
-\subsection{Introduction}
-%=========================================================================
+% We are interested in finding solutions to the scalar wave equation using a 
+% finite element approach using spacetime discretization. Specifically, we want
+% to find solutions $u(x, t)$ to
+% \begin{equation}
+% \label{eq:wave_equation}
+% u_{tt} - c^2 \bigtriangleup u = 0, \qquad \text{in} \quad \Omega \times (0, T],
+% \end{equation}
+% with boundary and initial conditions (we will check if these are necessary
+% and/or sufficient below)
+% \begin{eqnarray}
+% \label{eq:boundary_conditions}
+% u =& 0,\quad \partial_{n} u &= 0 \quad \text{in} \quad \partial\Omega,\\
+% \label{eq:initial_data}
+% u(\cdot, 0) =& f,\quad u_t(\cdot, 0) &=  0 \quad \text{in} \quad \Omega,
+% \end{eqnarray}
+% where Eq.~(\ref{eq:boundary_conditions}) enforces a reflecting boundary
+% condition at the spatial boundaries, and Eq.~(\ref{eq:initial_data}) specifies
+% the initial data in terms of the wave profile and it's derivative at $t=0$.\\
 
-We are interested in finding solutions to the scalar wave equation using a 
-finite element approach using spacetime discretization. Specifically, we want
-to find solutions $u(x, t)$ to
-\begin{equation}
-\label{eq:wave_equation}
-u_{tt} - c^2 \bigtriangleup u = 0, \qquad \text{in} \quad \Omega \times (0, T],
-\end{equation}
-with boundary and initial conditions (we will check if these are necessary
-and/or sufficient below)
-\begin{eqnarray}
-\label{eq:boundary_conditions}
-u =& 0,\quad \partial_{n} u &= 0 \quad \text{in} \quad \partial\Omega,\\
-\label{eq:initial_data}
-u(\cdot, 0) =& f,\quad u_t(\cdot, 0) &=  0 \quad \text{in} \quad \Omega,
-\end{eqnarray}
-where Eq.~(\ref{eq:boundary_conditions}) enforces a reflecting boundary
-condition at the spatial boundaries, and Eq.~(\ref{eq:initial_data}) specifies
-the initial data in terms of the wave profile and it's derivative at $t=0$.\\
+% %=========================================================================
+% \subsection{Variational Formulation}
+% %=========================================================================
 
-%=========================================================================
-\subsection{Variational Formulation}
-%=========================================================================
+% We start by computing the variational formulation of
+% Eq.~(\ref{eq:wave_equation}). If $u(x,t)$ is a solution to
+% Eq.~(\ref{eq:wave_equation}), then for any reasonable test function $v \in
+% \Omega \times (0, T]$
+% \begin{equation}
+% u_{tt}\,v - c^2 (\bigtriangleup u)\, v = 0.
+% \end{equation}
+% Integrating over the domain $\mathcal{M} = \Omega \times (0, T]$, and using
+% integration by parts for converting the second order derivatives to first
+% order derivatives, we get
+% \begin{eqnarray}
+% \int\limits_{\mathcal{M}} u_{tt}\,v \mathrm{\,dt\, d\Omega} 
+% - c^2 \int\limits_{\mathcal{M}} \nabla\cdot(\nabla u)\, v \mathrm{\,dt\, d\Omega} 
+% &=& 0,\\
+% \label{eq:intbyparts}
+% \int\limits_{\Omega}\left[u_t v \right]_{0}^{T}\,\mathrm{d\Omega}  
+% - \int\limits_{\Omega}\mathrm{d\Omega}\int\limits_{T} u_t v_t \mathrm{\,dt}
+% + c^2\int\limits_{T}\,\mathrm{dt}\int\limits_{\Omega} \nabla u \cdot \nabla v \,\mathrm{\,d\Omega}
+% - c^2\int\limits_{T}\,\mathrm{dt}\int\limits_{\Omega} \nabla \cdot \left(v\,\nabla u\right) \,\mathrm{\,d\Omega}
+% &=& 0.
+% \end{eqnarray}
+% Applying Gauss law to the fourth term in the right hand side of Eq.~(\ref{eq:intbyparts}), we get
+% \begin{equation}
+% \label{eq:initialweakform}
+% \int\limits_{\Omega}\left[u_t v \right]_{0}^{T}\,\mathrm{d\Omega}  
+% - \int\limits_{\mathcal{M}} u_t v_t \mathrm{\,dtd\Omega}
+% + c^2\int\limits_{\mathcal{M}} \nabla u \cdot \nabla v \,\mathrm{\,dt d\Omega}
+% - c^2\int\limits_{T}\,\mathrm{dt}\oint\limits_{\partial\Omega} v\, \left(\nabla u \cdot \mathbf{n}\right) \,\mathrm{\,d\Gamma}
+% = 0.
+% \end{equation}
+% The above equation is the intial weak form of the scalar wave equation. We now
+% apply the boundary conditions to set some of the terms to
+% zero\footnote{\textcolor{red}{How we apply these boundary conditions
+% explicitly in the code is something I'm still working on.}}. Consider the
+% fourth term in Eq.~(\ref{eq:initialweakform}). We set this to zero, since our
+% boundary conditions demand that the flux $(\nabla u \cdot \mathbf{n})$ at the
+% boundary is zero; see Eq.~(\ref{eq:boundary_conditions}).The first term can
+% also be (partially) eliminated using using the initial condtions.
+% \textcolor{red}{However, the term $u_t v |_{T}$ remains, since we do not have
+% a boundary condition there. We could, however, choose a function $v$, which
+% vanishes at the final time slice, but I'm not sure if that's allowed. For the
+% time, we assume that the first term can also be set to zero in
+% Eq.~(\ref{eq:boundary_conditions})}.\\
 
-We start by computing the variational formulation of
-Eq.~(\ref{eq:wave_equation}). If $u(x,t)$ is a solution to
-Eq.~(\ref{eq:wave_equation}), then for any reasonable test function $v \in
-\Omega \times (0, T]$
-\begin{equation}
-u_{tt}\,v - c^2 (\bigtriangleup u)\, v = 0.
-\end{equation}
-Integrating over the domain $\mathcal{M} = \Omega \times (0, T]$, and using
-integration by parts for converting the second order derivatives to first
-order derivatives, we get
-\begin{eqnarray}
-\int\limits_{\mathcal{M}} u_{tt}\,v \mathrm{\,dt\, d\Omega} 
-- c^2 \int\limits_{\mathcal{M}} \nabla\cdot(\nabla u)\, v \mathrm{\,dt\, d\Omega} 
-&=& 0,\\
-\label{eq:intbyparts}
-\int\limits_{\Omega}\left[u_t v \right]_{0}^{T}\,\mathrm{d\Omega}  
-- \int\limits_{\Omega}\mathrm{d\Omega}\int\limits_{T} u_t v_t \mathrm{\,dt}
-+ c^2\int\limits_{T}\,\mathrm{dt}\int\limits_{\Omega} \nabla u \cdot \nabla v \,\mathrm{\,d\Omega}
-- c^2\int\limits_{T}\,\mathrm{dt}\int\limits_{\Omega} \nabla \cdot \left(v\,\nabla u\right) \,\mathrm{\,d\Omega}
-&=& 0.
-\end{eqnarray}
-Applying Gauss law to the fourth term in the right hand side of Eq.~(\ref{eq:intbyparts}), we get
-\begin{equation}
-\label{eq:initialweakform}
-\int\limits_{\Omega}\left[u_t v \right]_{0}^{T}\,\mathrm{d\Omega}  
-- \int\limits_{\mathcal{M}} u_t v_t \mathrm{\,dtd\Omega}
-+ c^2\int\limits_{\mathcal{M}} \nabla u \cdot \nabla v \,\mathrm{\,dt d\Omega}
-- c^2\int\limits_{T}\,\mathrm{dt}\oint\limits_{\partial\Omega} v\, \left(\nabla u \cdot \mathbf{n}\right) \,\mathrm{\,d\Gamma}
-= 0.
-\end{equation}
-The above equation is the intial weak form of the scalar wave equation. We now
-apply the boundary conditions to set some of the terms to
-zero\footnote{\textcolor{red}{How we apply these boundary conditions
-explicitly in the code is something I'm still working on.}}. Consider the
-fourth term in Eq.~(\ref{eq:initialweakform}). We set this to zero, since our
-boundary conditions demand that the flux $(\nabla u \cdot \mathbf{n})$ at the
-boundary is zero; see Eq.~(\ref{eq:boundary_conditions}).The first term can
-also be (partially) eliminated using using the initial condtions.
-\textcolor{red}{However, the term $u_t v |_{T}$ remains, since we do not have
-a boundary condition there. We could, however, choose a function $v$, which
-vanishes at the final time slice, but I'm not sure if that's allowed. For the
-time, we assume that the first term can also be set to zero in
-Eq.~(\ref{eq:boundary_conditions})}.\\
+% Therefore, we have, together with the Dirichlet boundary conditions
+% \begin{eqnarray}
+% \label{eq:variationalform}
+% - \int\limits_{\mathcal{M}} u_t v_t \mathrm{\,dtd\Omega}
+% + c^2\int\limits_{\mathcal{M}} \nabla u \cdot \nabla v \,\mathrm{\,dt d\Omega}
+% &=& 0, \quad \text{in}~\Omega,\\
+% u &=& 0, \quad \text{in}~\partial\Omega. 
+% \end{eqnarray}
 
-Therefore, we have, together with the Dirichlet boundary conditions
-\begin{eqnarray}
-\label{eq:variationalform}
-- \int\limits_{\mathcal{M}} u_t v_t \mathrm{\,dtd\Omega}
-+ c^2\int\limits_{\mathcal{M}} \nabla u \cdot \nabla v \,\mathrm{\,dt d\Omega}
-&=& 0, \quad \text{in}~\Omega,\\
-u &=& 0, \quad \text{in}~\partial\Omega. 
-\end{eqnarray}
+% %=========================================================================
+% \subsection{Spacetime discretization}
+% %=========================================================================
 
-%=========================================================================
-\subsection{Spacetime discretization}
-%=========================================================================
+% For the sake of simplicity, we consider Eq.~(\ref{eq:variationalform}) in 1D,
+% where Eq.~(\ref{eq:variationalform}) becomes much simpler, and reduces to
+% \begin{equation}
+% \label{eq:variationalform_final}
+% - \int\limits_{\mathcal{M}} u_t v_t \mathrm{\,dt dx}
+% + c^2\int\limits_{\mathcal{M}} u_x v_x \,\mathrm{\,dt dx}
+% = 0.
+% \end{equation}
+% The above equation has been derived directly in \cite{Zumbusch}. We now
+% discretize Eq.~(\ref{eq:variationalform_final}) using a spacetime
+% discretization approach, and express $u$ in terms of $M$ basis functions in
+% time $\tilde{\psi}_l(t)$, and $N$ basis functions in space $\tilde{\phi}_i(x)$
+% as
+% \begin{equation}
+% u = \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N}\tilde{u}_i^l \, \tilde{\phi}_i(x)\, \tilde{\psi}_l(t), \\
+% \end{equation}
+% and choose the test function as any of the basis functions
+% \begin{equation}
+% v = \tilde{\phi}_j(x)\, \tilde{\psi}_m(t),
+% \end{equation}
+% as we are free to choose any (reasonable) function in $\Omega$. Plugging these
+% into Eq.~(\ref{eq:variationalform_final}), we arrive at (setting $c=1$ for convinience)
+% \begin{equation}
+% \label{eq:summation_expanded}
+% - \sum\limits_{i=0}^{N}\sum\limits_{l=0}^{M} u_i^l 
+% \int\limits_{x} \mathrm{dx}\, \tilde{\phi}_i(x)\tilde{\phi}_j(x)
+% \int\limits_{T} \mathrm{dt}\, \partial_t\tilde{\psi}_l(t)\partial_t\tilde{\psi}_m^0(t)
+% + \sum\limits_{i=0}^{M}\sum\limits_{l=0}^{N} u_i^l 
+% \int\limits_{T} \mathrm{dt}\, \tilde{\psi}_l(t)\tilde{\psi}_m(t)
+% \int\limits_{x} \partial_x\tilde{\phi}_i(x)\partial_x\tilde{\phi}_j(x) = 0.
+% \end{equation}
+% Defining the mass matrix M and stiffness matrix A in the spatial dimension,
+% \begin{eqnarray}
+% \label{eq:matrix_space}
+% M := m_{ij} &=& \int\limits_{x} \mathrm{dx}\, \tilde{\phi}_i(x)\tilde{\phi}_j(x), \\
+% A := a_{ij} &=& \int\limits_{x} \partial_x\tilde{\phi}_i(x)\partial_x\tilde{\phi}_j(x),
+% \end{eqnarray}
+% and two additional matrices
+% \begin{eqnarray}
+% \label{eq:matrix_time}
+% k_{lm} &=& \int\limits_{T} \mathrm{dt}\, \tilde{\psi}_l(t)\tilde{\psi}_m(t), \\
+% p_{lm} &=& \int\limits_{T} \mathrm{dt}\, \partial_t\tilde{\psi}_l(t)\partial_t\tilde{\psi}_m(t),
+% \end{eqnarray}
+% we can express Eq.~(\ref{eq:summation_expanded}) as
+% \begin{equation}
+% - \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, m_{ij}\, p_{lm} 
+% + \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, a_{ik}\, k_{lm} = 0.
+% \end{equation}
+% Notice that we have two free indices $(j,m)$ and hence $(j \times m)$
+% independent equations, the same number as the number of unknowns $(i\times
+% l)$, so things look consistent till now. \textcolor{red}{However, we have
+% boundary conditions, and how many degrees of freedom do they take away?}. If
+% we use hat functions as basis functions for both space and time basis
+% dimensions Eqs.~(\ref{eq:matrix_space}--\ref{eq:matrix_time}), the integrals
+% are simple to evaluate. We will discuss the case for $k_{lm}$ and $p_{lm}$,
+% since it will give us an implicit time-stepping equation. Let
+% \begin{equation}
+% \psi_j(t) =  
+% \begin{cases}
+% 0 & \text{if $t\in \left[t_{l-1},t_{l+1}\right]$} \\
+% \dfrac{t - t_{l-1}}{t_l - t_{l-1}} & \text{if $t\in \left[t_{l-1},t_{l}\right]$} \\
+% \dfrac{t_{l+1} - t}{t_{l+1} - t_{l}} & \text{if $t\in \left[t_{l},t_{l+1}\right]$}
+% \end{cases}.
+% \end{equation}
+% Then, we immediately notice that the product of two functions (or their
+% derivatives) would only be non-zero, if there are in the same element, i.e.
+% $[t_{l-1}, t_{l+1}]$. Thus, Eq.~(\ref{eq:summation_expanded}) now reduces to
+% (localized in a single element in time)
+% \begin{equation}
+% \label{eq:summation_reduced}
+% - \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, m_{ij}\, 
+% \int\limits_{t_{l-1}}^{{t_{l+1}}} \mathrm{dt}\, \partial_t\tilde{\psi}_l(t)\partial_t\tilde{\psi}_m^0(t) 
+% + \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, a_{ik}\, 
+% \int\limits_{t_{l-1}}^{{t_{l+1}}} \mathrm{dt}\, \tilde{\psi}_l(t)\tilde{\psi}_m(t) = 0.
+% \end{equation}
+% The only surviving elements in $k_{lm}$ and $p_{lm}$
+% \begin{eqnarray}
+% \label{time-stepping}
+%  k_{l-1, l} = h_0/6, \quad k_{ll} &=& 2 h_0/3, \quad k_{l, l+1} = h_0/6, \\
+%  p_{l-1, l} = -1/h_0, \quad p_{ll} &=& 2/h_0, \quad p_{l, l+1} = -1/h_0,
+% \end{eqnarray}
+% where $h_0 = t_l - t_{l-1}$ is the unform spacing in time. Finally, plugging Eq.~(\ref{time-stepping}) into
+% Eq.~(\ref{eq:summation_reduced}), gives us an implicit step in time, as
+% \begin{eqnarray}
+% - \sum\limits_{i=0}^{N} m_{ij}\, \left(u_i^{l-1} p_{l-1, l} + u_i^{l} p_{l, l} + u_i^{l+1} p_{l, l+1} \right)
+% + \sum\limits_{i=0}^{N} a_{ij}\, \left(u_i^{l-1} k_{l-1, l} + u_i^{l} k_{l, l} + u_i^{l+1} k_{l, l+1} \right) = 0, \\
+% M  \left( \dfrac{1}{h_0}\mathbf{u}^{l+1} -  \dfrac{2}{h_0}\mathbf{u}^{l} + \dfrac{1}{h_0}\mathbf{u}^{l-1} \right)
+% = - A \left( \dfrac{h_0}{6}\mathbf{u}^{l+1} +  \dfrac{2 h_0}{3}\mathbf{u}^{l} + \dfrac{h_0}{6}\mathbf{u}^{l-1} \right) 
+% \end{eqnarray}
+% Therfore, given $\mathbf{u}^r$ and $\mathbf{u}^{r-1}$, both vectors of length $N$, we can solve for $\mathbf{u}^{k+1}$, using the equation
+% \begin{equation}
+% M  \left(\mathbf{u}^{r+1} -  2\mathbf{u}^{r} + \mathbf{u}^{r-1} \right)
+% = - A h_0^2 \left( \dfrac{1}{6}\mathbf{u}^{r+1} +  \dfrac{2}{3}\mathbf{u}^{r} + \dfrac{1}{6}\mathbf{u}^{r-1} \right),
+% \end{equation}
+% which can be cast in the form of $\tilde{A}\, x = b$, where
 
-For the sake of simplicity, we consider Eq.~(\ref{eq:variationalform}) in 1D,
-where Eq.~(\ref{eq:variationalform}) becomes much simpler, and reduces to
-\begin{equation}
-\label{eq:variationalform_final}
-- \int\limits_{\mathcal{M}} u_t v_t \mathrm{\,dt dx}
-+ c^2\int\limits_{\mathcal{M}} u_x v_x \,\mathrm{\,dt dx}
-= 0.
-\end{equation}
-The above equation has been derived directly in \cite{Zumbusch}. We now
-discretize Eq.~(\ref{eq:variationalform_final}) using a spacetime
-discretization approach, and express $u$ in terms of $M$ basis functions in
-time $\tilde{\psi}_l(t)$, and $N$ basis functions in space $\tilde{\phi}_i(x)$
-as
-\begin{equation}
-u = \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N}\tilde{u}_i^l \, \tilde{\phi}_i(x)\, \tilde{\psi}_l(t), \\
-\end{equation}
-and choose the test function as any of the basis functions
-\begin{equation}
-v = \tilde{\phi}_j(x)\, \tilde{\psi}_m(t),
-\end{equation}
-as we are free to choose any (reasonable) function in $\Omega$. Plugging these
-into Eq.~(\ref{eq:variationalform_final}), we arrive at (setting $c=1$ for convinience)
-\begin{equation}
-\label{eq:summation_expanded}
-- \sum\limits_{i=0}^{N}\sum\limits_{l=0}^{M} u_i^l 
-\int\limits_{x} \mathrm{dx}\, \tilde{\phi}_i(x)\tilde{\phi}_j(x)
-\int\limits_{T} \mathrm{dt}\, \partial_t\tilde{\psi}_l(t)\partial_t\tilde{\psi}_m^0(t)
-+ \sum\limits_{i=0}^{M}\sum\limits_{l=0}^{N} u_i^l 
-\int\limits_{T} \mathrm{dt}\, \tilde{\psi}_l(t)\tilde{\psi}_m(t)
-\int\limits_{x} \partial_x\tilde{\phi}_i(x)\partial_x\tilde{\phi}_j(x) = 0.
-\end{equation}
-Defining the mass matrix M and stiffness matrix A in the spatial dimension,
-\begin{eqnarray}
-\label{eq:matrix_space}
-M := m_{ij} &=& \int\limits_{x} \mathrm{dx}\, \tilde{\phi}_i(x)\tilde{\phi}_j(x), \\
-A := a_{ij} &=& \int\limits_{x} \partial_x\tilde{\phi}_i(x)\partial_x\tilde{\phi}_j(x),
-\end{eqnarray}
-and two additional matrices
-\begin{eqnarray}
-\label{eq:matrix_time}
-k_{lm} &=& \int\limits_{T} \mathrm{dt}\, \tilde{\psi}_l(t)\tilde{\psi}_m(t), \\
-p_{lm} &=& \int\limits_{T} \mathrm{dt}\, \partial_t\tilde{\psi}_l(t)\partial_t\tilde{\psi}_m(t),
-\end{eqnarray}
-we can express Eq.~(\ref{eq:summation_expanded}) as
-\begin{equation}
-- \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, m_{ij}\, p_{lm} 
-+ \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, a_{ik}\, k_{lm} = 0.
-\end{equation}
-Notice that we have two free indices $(j,m)$ and hence $(j \times m)$
-independent equations, the same number as the number of unknowns $(i\times
-l)$, so things look consistent till now. \textcolor{red}{However, we have
-boundary conditions, and how many degrees of freedom do they take away?}. If
-we use hat functions as basis functions for both space and time basis
-dimensions Eqs.~(\ref{eq:matrix_space}--\ref{eq:matrix_time}), the integrals
-are simple to evaluate. We will discuss the case for $k_{lm}$ and $p_{lm}$,
-since it will give us an implicit time-stepping equation. Let
-\begin{equation}
-\psi_j(t) =  
-\begin{cases}
-0 & \text{if $t\in \left[t_{l-1},t_{l+1}\right]$} \\
-\dfrac{t - t_{l-1}}{t_l - t_{l-1}} & \text{if $t\in \left[t_{l-1},t_{l}\right]$} \\
-\dfrac{t_{l+1} - t}{t_{l+1} - t_{l}} & \text{if $t\in \left[t_{l},t_{l+1}\right]$}
-\end{cases}.
-\end{equation}
-Then, we immediately notice that the product of two functions (or their
-derivatives) would only be non-zero, if there are in the same element, i.e.
-$[t_{l-1}, t_{l+1}]$. Thus, Eq.~(\ref{eq:summation_expanded}) now reduces to
-(localized in a single element in time)
-\begin{equation}
-\label{eq:summation_reduced}
-- \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, m_{ij}\, 
-\int\limits_{t_{l-1}}^{{t_{l+1}}} \mathrm{dt}\, \partial_t\tilde{\psi}_l(t)\partial_t\tilde{\psi}_m^0(t) 
-+ \sum\limits_{l=0}^{M}\sum\limits_{i=0}^{N} u_i^l\, a_{ik}\, 
-\int\limits_{t_{l-1}}^{{t_{l+1}}} \mathrm{dt}\, \tilde{\psi}_l(t)\tilde{\psi}_m(t) = 0.
-\end{equation}
-The only surviving elements in $k_{lm}$ and $p_{lm}$
-\begin{eqnarray}
-\label{time-stepping}
- k_{l-1, l} = h_0/6, \quad k_{ll} &=& 2 h_0/3, \quad k_{l, l+1} = h_0/6, \\
- p_{l-1, l} = -1/h_0, \quad p_{ll} &=& 2/h_0, \quad p_{l, l+1} = -1/h_0,
-\end{eqnarray}
-where $h_0 = t_l - t_{l-1}$ is the unform spacing in time. Finally, plugging Eq.~(\ref{time-stepping}) into
-Eq.~(\ref{eq:summation_reduced}), gives us an implicit step in time, as
-\begin{eqnarray}
-- \sum\limits_{i=0}^{N} m_{ij}\, \left(u_i^{l-1} p_{l-1, l} + u_i^{l} p_{l, l} + u_i^{l+1} p_{l, l+1} \right)
-+ \sum\limits_{i=0}^{N} a_{ij}\, \left(u_i^{l-1} k_{l-1, l} + u_i^{l} k_{l, l} + u_i^{l+1} k_{l, l+1} \right) = 0, \\
-M  \left( \dfrac{1}{h_0}\mathbf{u}^{l+1} -  \dfrac{2}{h_0}\mathbf{u}^{l} + \dfrac{1}{h_0}\mathbf{u}^{l-1} \right)
-= - A \left( \dfrac{h_0}{6}\mathbf{u}^{l+1} +  \dfrac{2 h_0}{3}\mathbf{u}^{l} + \dfrac{h_0}{6}\mathbf{u}^{l-1} \right) 
-\end{eqnarray}
-Therfore, given $\mathbf{u}^r$ and $\mathbf{u}^{r-1}$, both vectors of length $N$, we can solve for $\mathbf{u}^{k+1}$, using the equation
-\begin{equation}
-M  \left(\mathbf{u}^{r+1} -  2\mathbf{u}^{r} + \mathbf{u}^{r-1} \right)
-= - A h_0^2 \left( \dfrac{1}{6}\mathbf{u}^{r+1} +  \dfrac{2}{3}\mathbf{u}^{r} + \dfrac{1}{6}\mathbf{u}^{r-1} \right),
-\end{equation}
-which can be cast in the form of $\tilde{A}\, x = b$, where
+% \begin{eqnarray}
+% \tilde{A} &=& M + \dfrac{h_0^2}{6}A, \\
+% x &=& \mathbf{u}^{r+1}, \\
+% b &=& 2\,\mathbf{u}^{r}\left(M - \dfrac{2 h_0^2}{3}A\right) - \mathbf{u}^{r-1} \left(M + \dfrac{h_0^2}{6}A\right)
+% \end{eqnarray}
 
-\begin{eqnarray}
-\tilde{A} &=& M + \dfrac{h_0^2}{6}A, \\
-x &=& \mathbf{u}^{r+1}, \\
-b &=& 2\,\mathbf{u}^{r}\left(M - \dfrac{2 h_0^2}{3}A\right) - \mathbf{u}^{r-1} \left(M + \dfrac{h_0^2}{6}A\right)
-\end{eqnarray}
+% %=========================================================================
+% \section{Discretized Euler-Lagrange Equations Approach}
+% %=========================================================================
 
-%=========================================================================
-\section{Discretized Euler-Lagrange Equations Approach}
-%=========================================================================
-
-In the previous section, we started with the equations of motion followed by a
-spacetime discretization to arrive at the numerical implementation of the
-problem. However, we can instead start by discretizing the Lagrangian to
-arrive at a similar implicit time-stepping scheme, which is the focus of this
-section. For a discrete formulation of the action princple, we begin by
-discretizing in time ($t_n$), and approximating the discrete Lagrangian for a
-time interval $(t_n, t_{n+1})$
-\begin{equation}
-\label{discretized_lagrangian}
-L_d(q_{n}, q_{n+1}) \approx \int\limits_{t_n}^{t_{n+1}} L(q, \dot{q})\, \textrm{d}t,
-\end{equation}
-where $q_n = q(t_n)$ is a sequence of configuations in time. We can then
-approximate the action integral as
-\begin{equation}
-S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=0}^{N-1} \,L_d (q_n, q_{n+1})
-\approx \int\limits_{0}^{T} L(q, \dot{q})\, \textrm{d}t.
-\end{equation}
-Now, if we deman that the variation $\delta S_d(q_0, q_1, ..., q_N) = 0$, for
-the true configuration at each time level, then the variation of the discrete
-action can be written as
-\begin{equation}
-\label{variation}
-\delta S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=0}^{N-1} \left[D_1 \,L_d (q_n, q_{n+1})\cdot \delta q_n 
-+ D_2\,L_d (q_n, q_{n+1})\cdot \delta q_{n+1}\right].
-\end{equation}
-Using summation by parts on the second term in Eq.~(\ref{variation}), and the
-fact that the variation at the end points vanish $(\delta q_0 = \delta q_N = 0)$,
-we get
-\begin{equation}
-\delta S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=1}^{N-1}  \left[ D_1 \,L_d (q_{n}, q_{n+1})\cdot \delta q_n 
-+ D_2\,L_d (q_{n-1}, q_{n}) \right] \cdot \delta q_{n},
-\end{equation}
-which gives us
-\begin{equation}
-\label{finalform_variational}
- \left[ D_1 \,L_d (q_{n}, q_{n+1})\cdot \delta q_n 
-+ D_2\,L_d (q_{n-1}, q_{n}) \right] = 0, \quad n = 1, 2,...,N-1,
-\end{equation}
-which gives an implicit time-stepping scheme to go from $(q_{n-1}, q_n)$ to $(q_n, q_n+1)$ at each time level $n$. \\
+% In the previous section, we started with the equations of motion followed by a
+% spacetime discretization to arrive at the numerical implementation of the
+% problem. However, we can instead start by discretizing the Lagrangian to
+% arrive at a similar implicit time-stepping scheme, which is the focus of this
+% section. For a discrete formulation of the action princple, we begin by
+% discretizing in time ($t_n$), and approximating the discrete Lagrangian for a
+% time interval $(t_n, t_{n+1})$
+% \begin{equation}
+% \label{discretized_lagrangian}
+% L_d(q_{n}, q_{n+1}) \approx \int\limits_{t_n}^{t_{n+1}} L(q, \dot{q})\, \textrm{d}t,
+% \end{equation}
+% where $q_n = q(t_n)$ is a sequence of configuations in time. We can then
+% approximate the action integral as
+% \begin{equation}
+% S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=0}^{N-1} \,L_d (q_n, q_{n+1})
+% \approx \int\limits_{0}^{T} L(q, \dot{q})\, \textrm{d}t.
+% \end{equation}
+% Now, if we deman that the variation $\delta S_d(q_0, q_1, ..., q_N) = 0$, for
+% the true configuration at each time level, then the variation of the discrete
+% action can be written as
+% \begin{equation}
+% \label{variation}
+% \delta S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=0}^{N-1} \left[D_1 \,L_d (q_n, q_{n+1})\cdot \delta q_n 
+% + D_2\,L_d (q_n, q_{n+1})\cdot \delta q_{n+1}\right].
+% \end{equation}
+% Using summation by parts on the second term in Eq.~(\ref{variation}), and the
+% fact that the variation at the end points vanish $(\delta q_0 = \delta q_N = 0)$,
+% we get
+% \begin{equation}
+% \delta S_d(q_0, q_1, ..., q_N) = \sum\limits_{n=1}^{N-1}  \left[ D_1 \,L_d (q_{n}, q_{n+1})\cdot \delta q_n 
+% + D_2\,L_d (q_{n-1}, q_{n}) \right] \cdot \delta q_{n},
+% \end{equation}
+% which gives us
+% \begin{equation}
+% \label{finalform_variational}
+%  \left[ D_1 \,L_d (q_{n}, q_{n+1})\cdot \delta q_n 
+% + D_2\,L_d (q_{n-1}, q_{n}) \right] = 0, \quad n = 1, 2,...,N-1,
+% \end{equation}
+% which gives an implicit time-stepping scheme to go from $(q_{n-1}, q_n)$ to $(q_n, q_n+1)$ at each time level $n$. \\
 
 \bibliography{notes}
 \end{document}

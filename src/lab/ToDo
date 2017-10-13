@@ -27,6 +27,7 @@
         6.307086 seconds   {Julia}
 
 ==> Next steps?
+    > What next?
     > Solve the 3+1 scalar wave equation in Python and Julia. 
     > Profile their performance: time spent, allocation etc. 
     > Add a source term to the wave equation and/or solve the Poisson equation 

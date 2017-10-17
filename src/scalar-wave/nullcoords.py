@@ -99,7 +99,7 @@ def main(N):
 # Call function
 #===================================================
 
-# single solution
+# single solutionba
 if(0):
 	L2, zz, uu, vv, ss, runtime =main(40)
 

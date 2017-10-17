@@ -2,7 +2,7 @@ import numpy as np
 import utilities as util
 import matplotlib.pyplot as plt
 
-def init(func):					# returns Boundary
+def init(func):					# returns Initial boundary
 	bnd = func(dictionary["chebnodes"])
 	return bnd
 

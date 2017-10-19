@@ -72,3 +72,9 @@ def makeboundaryvec(N, bnd1, bnd2):
 
 def makeinitialdata(x):
   return np.sin(np.pi*x)
+
+def makeglobalgrid(M):
+  grid = np.zeros((M,M))
+  for index, val in np.ndenumerate(grid):
+    grid[index] = np.sum(index)
+  return grid

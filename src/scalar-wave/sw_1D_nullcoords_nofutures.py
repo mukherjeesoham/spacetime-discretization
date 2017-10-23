@@ -109,6 +109,7 @@ dictionary = {
 }
 
 domain = assemblegrid(M, main(M))
+print np.shape(domain)
 plt.imshow(domain)
 for k in range(M+1):
 	plt.axvline([k*N], color='w')

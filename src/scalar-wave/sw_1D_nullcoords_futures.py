@@ -83,25 +83,31 @@ def main(M):
 				bcol  = fextract(domain[str(i)+str(j-1)], 1)
 				brow  = fextract(domain[str(i-1)+str(j)], 0)
 			
+			print str(i)+str(j)
 			domain[str(i)+str(j)] = fsolve(bcol, brow)
 	return domain 	
 
 def assemblegrid(M, domain):
-	domain[str(M-1)+str(M-1)].result()	# wait for all to be computed
 	I = []
+	domain[str(M-1)+str(M-1)].result()
 	for i in range(M):
 		J = []
 		for j in range(M):	
 			J.append(domain[str(i)+str(j)].result())
 		I.append(J)
-	return np.block(I)
+	block = np.block(I)
+	for column in range(0, M*(N+1), N+1):
+		if column != 0:
+			block = np.delete(block, column, 0) 
+			block = np.delete(block, column, 1) 
+	return block
 
 #==================================================================
 # Function calls.
 #==================================================================
 
-N = 20
-M = 20
+N = 19
+M = 10
 
 dictionary = {
 	"size"      : N,
@@ -110,13 +116,10 @@ dictionary = {
 }
 
 domain = assemblegrid(M, main(M))
+plt.imshow(domain)
+for k in range(1, M):
+	plt.axvline([k*(N)], color='w')
+	plt.axhline([k*(N)], color='w')
 
-plt.xlim(0, M*N)
-plt.ylim(0, M*N)
-plt.imshow(np.flipud(domain))
-
-for k in range(M+1):
-	plt.axvline([k*N], color='w')
-	plt.axhline([k*N], color='w')
-
+plt.axis("off")
 plt.show()

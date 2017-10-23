@@ -48,30 +48,29 @@ def operator(N):
   Du, u  = cheb(N)
   Dv, v  = cheb(N)
   uu, vv = np.meshgrid(u,v)
-
   I  = np.eye(N+1)
   DU = np.kron(Du, I)
   DV = np.kron(I, Dv)
-
   D  = np.dot(DU,DV) + np.dot(DV,DU)      # operator
-  V = np.outer(clencurt(N), clencurt(N))
-  W = np.diag(np.ravel(V))                # integration weights
-
-  A = W.dot(D)
-
+  V  = np.outer(clencurt(N), clencurt(N))
+  W  = np.diag(np.ravel(V))                # integration weights
+  A  = W.dot(D)
   BC = np.zeros((N+1,N+1))
   BC[0, :] = BC[:, 0]  = 1  
   A[np.where(np.ravel(BC)==1)[0]] = np.eye((N+1)**2)[np.where(np.ravel(BC)==1)[0]]  
   return A
 
-def makeboundaryvec(N, bnd1, bnd2):
+def makeboundaryvec(N, bcol, brow):
   b = np.eye(N+1)*0.0
-  b[:,  0] = bnd1
-  b[0,  :] = bnd2
+  b[:,  0] = bcol
+  b[0,  :] = brow
   return np.ravel(b)
 
 def makeinitialdata(x):
   return np.sin(np.pi*x)
+
+def setzero(x):
+  return np.zeros(len(x))
 
 def makeglobalgrid(M):
   grid = np.zeros((M,M))

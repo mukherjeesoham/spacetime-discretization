@@ -10,22 +10,21 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 # Core functions
 #==================================================================
 
-def init(func):					# returns Initial boundary
-	bnd = func(dictionary["chebnodes"])	# this is a very rudimentary implementation
-	return bnd
+def init(func):					# returns initial/boundary
+	return func(dictionary["chebnodes"])
 
-def solve(bnd1, bnd2):          # returns Patch
+def solve(bcol, brow):          # returns Patch
 	N = dictionary["size"]
 	A = dictionary["operator"]
-	b = util.makeboundaryvec(N, bnd1, bnd2)
+	b = util.makeboundaryvec(N, bcol, brow)
 	patch = np.reshape(np.linalg.solve(A, b), (N+1, N+1))
 	return patch
 
-def extract(patch, int):		# returns Boundary
-	if int == 0:				# extract right boundary
-		return patch[:,  0]
+def extract(patch, col):		# returns Boundary
+	if col == 1:				# extract last column
+		return patch[:,  -1]
 	else:
-		return patch[0,  :]		# extract left boundary
+		return patch[-1,  :]	# extract last row
 
 def output(patch):          
     return None
@@ -34,17 +33,20 @@ def output(patch):
 # Futurized implementation of the core functions
 #==================================================================
 
-def finit(func):                 # returns Future[Boundary]
+def finit(func):                	# returns Future[Boundary]
     return executor.submit(init, func)
 
-def fsolve(fbnd1, fbnd2):       # returns Future[Patch]
-    return executor.submit(solve, fbnd1.result(), fbnd2.result())
+def fsetboundary(func):             # returns Future[Boundary]
+    return executor.submit(setboundary, func)
 
-def fextract(fpatch, int):          # return Future[Boundary]
-	if int == 0:
-		return executor.submit(extract, fpatch.result(), 0)
-	else:
+def fsolve(fbcol, fbrow):       	# returns Future[Patch]
+    return executor.submit(solve, fbcol.result(), fbrow.result())
+
+def fextract(fpatch, col):          # return Future[Boundary]
+	if col == 1:
 		return executor.submit(extract, fpatch.result(), 1)
+	else:
+		return executor.submit(extract, fpatch.result(), 0)
 
 def foutput(fpatch):            # returns None
     # We don't return a future since we want the output to occur
@@ -64,20 +66,27 @@ def main(M):
 	for i in range(int(np.max(grid))+1):
 		slice = np.transpose(np.where(grid==i))
 		for index in slice:
-			if np.sum(index) == 0:										# initial patch
-				bnd1  = finit(util.makeinitialdata)
-				bnd2  = finit(util.makeinitialdata)	
-			elif np.prod(index) == 0:									# boundary patches
+
+			if np.sum(index) == 0:	# initial patch
+				print "Setting future for patch in I", index
+				bcol  = finit(util.makeinitialdata)
+				brow  = finit(util.makeinitialdata)	
+
+			elif (np.prod(index) == 0 and np.sum(index) != 0):		
+				print "Setting future for patch in B", index	
 				if index[0] > index[1]:									
-					bnd1  = finit(util.makeinitialdata)
-					bnd2  = fextract(domain[index[0]-1][index[1]], 1)	
+					bcol  = finit(util.makeinitialdata)
+					brow  = fextract(domain[index[0]-1][index[1]], 0)	
 				else:													
-					bnd2  = finit(util.makeinitialdata)
-					bnd1  = fextract(domain[index[0]][index[1]-1], 0)
-			else:														# some patch in the middle.
-				bnd1  = fextract(domain[index[0]][index[1]-1], 0)
-				bnd2  = fextract(domain[index[0]-1][index[1]], 1)
-			domain[index[0]][index[1]] = fsolve(bnd1, bnd2) 
+					brow  = finit(util.makeinitialdata)
+					bcol  = fextract(domain[index[0]][index[1]-1], 1)
+			
+			else:	
+				print "Setting future for patch in C", index														
+				bcol  = fextract(domain[index[0]][index[1]-1], 1)
+				brow  = fextract(domain[index[0]-1][index[1]], 0)
+			
+			domain[index[0]][index[1]] = fsolve(bcol, brow) 
 	return domain 	
 
 def assemblegrid(M, fdomain):
@@ -94,7 +103,7 @@ def assemblegrid(M, fdomain):
 #==================================================================
 
 N = 20
-M = 4
+M = 2
 
 dictionary = {
 	"size"      : N,
@@ -104,6 +113,14 @@ dictionary = {
 
 fdomain = main(M)
 fdomain[M-1][M-1].result()	# wait for the final result to be computed
+print "Finished computation"
 domain = assemblegrid(M, fdomain)
-plt.imshow(domain)												
+plt.xlim(0, M*N)
+plt.ylim(0, M*N)
+plt.imshow(np.flipud(domain))
+
+for i in range(M+1):
+	plt.axhline([i*N], color='k')
+	plt.axvline([i*N], color='k')	
+
 plt.show()

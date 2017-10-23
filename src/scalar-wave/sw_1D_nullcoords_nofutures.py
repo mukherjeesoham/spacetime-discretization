@@ -69,30 +69,29 @@ def main(M):
 			i = index[0]
 			j = index[1]
 			if np.sum(index) == 0:	# initial patch
-				bcol  = finit(lambda x: np.sin(np.pi*x))
-				brow  = finit(lambda x: np.sin(np.pi*x))
+				bcol  = init(lambda x: 0*np.sin(np.pi*x))
+				brow  = init(lambda x: 0*np.sin(np.pi*x))
 
 			elif (np.prod(index) == 0 and np.sum(index) != 0):	
 				if index[0] > index[1]:									
-					bcol  = finit(lambda x: np.ones(len(x))*np.exp(-10))
-					brow  = fextract(domain[str(i-i)+str(j)], 0)	
+					bcol  = init(lambda x: np.sin(np.pi*x))
+					brow  = extract(domain[str(i-i)+str(j)], 0)	
 				else:													
-					brow  = finit(lambda x: np.ones(len(x))*np.exp(-10))
-					bcol  = fextract(domain[str(i)+str(j-1)], 1)			
-			else:												
-				bcol  = fextract(domain[str(i)+str(j-1)], 1)
-				brow  = fextract(domain[str(i-1)+str(j)], 0)
+					brow  = init(lambda x: np.sin(np.pi*x))
+					bcol  = extract(domain[str(i)+str(j-1)], 1)			
+			else:														
+				bcol  = extract(domain[str(i)+str(j-1)], 1)
+				brow  = extract(domain[str(i-1)+str(j)], 0)
 			
-			domain[str(i)+str(j)] = fsolve(bcol, brow)
+			domain[str(i)+str(j)] = solve(bcol, brow)
 	return domain 	
 
 def assemblegrid(M, domain):
-	domain[str(M-1)+str(M-1)].result()	# wait for all to be computed
 	I = []
 	for i in range(M):
 		J = []
 		for j in range(M):	
-			J.append(domain[str(i)+str(j)].result())
+			J.append(domain[str(i)+str(j)])
 		I.append(J)
 	return np.block(I)
 
@@ -100,8 +99,8 @@ def assemblegrid(M, domain):
 # Function calls.
 #==================================================================
 
-N = 20
-M = 20
+N = 40
+M = 10
 
 dictionary = {
 	"size"      : N,
@@ -110,13 +109,10 @@ dictionary = {
 }
 
 domain = assemblegrid(M, main(M))
-
-plt.xlim(0, M*N)
-plt.ylim(0, M*N)
-plt.imshow(np.flipud(domain))
-
+plt.imshow(domain)
 for k in range(M+1):
 	plt.axvline([k*N], color='w')
 	plt.axhline([k*N], color='w')
+
 
 plt.show()

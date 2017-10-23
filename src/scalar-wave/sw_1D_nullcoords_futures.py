@@ -1,6 +1,6 @@
 import numpy as np
 import concurrent.futures
-import utilities as util
+import futures_utilities as util
 import matplotlib.pyplot as plt
 
 # define the max number of threads the program is allowed to use.
@@ -25,9 +25,9 @@ def extract(patch, int):		# returns Boundary
 	if int == 0:				# extract right boundary
 		return patch[:,  0]
 	else:
-		return patch[0,  :]		# extract left boundary ([personal convention])
+		return patch[0,  :]		# extract left boundary
 
-def output(patch):              # returns None [XXX: What does this do again?]
+def output(patch):          
     return None
 
 #==================================================================
@@ -66,21 +66,18 @@ def main(M):
 		for index in slice:
 			if np.sum(index) == 0:										# initial patch
 				bnd1  = finit(util.makeinitialdata)
-				bnd2  = finit(util.makeinitialdata)
-				domain[index[0]][index[1]] = fsolve(bnd1, bnd2)			
+				bnd2  = finit(util.makeinitialdata)	
 			elif np.prod(index) == 0:									# boundary patches
 				if index[0] > index[1]:									
 					bnd1  = finit(util.makeinitialdata)
 					bnd2  = fextract(domain[index[0]-1][index[1]], 1)	
-					domain[index[0]][index[1]] = fsolve(bnd1, bnd2)
 				else:													
 					bnd2  = finit(util.makeinitialdata)
 					bnd1  = fextract(domain[index[0]][index[1]-1], 0)
-					domain[index[0]][index[1]] = fsolve(bnd1, bnd2)
 			else:														# some patch in the middle.
 				bnd1  = fextract(domain[index[0]][index[1]-1], 0)
 				bnd2  = fextract(domain[index[0]-1][index[1]], 1)
-				domain[index[0]][index[1]] = fsolve(bnd1, bnd2) 
+			domain[index[0]][index[1]] = fsolve(bnd1, bnd2) 
 	return domain 	
 
 def assemblegrid(M, fdomain):
@@ -96,7 +93,7 @@ def assemblegrid(M, fdomain):
 # Function calls.
 #==================================================================
 
-N = 40
+N = 20
 M = 4
 
 dictionary = {
@@ -106,7 +103,7 @@ dictionary = {
 }
 
 fdomain = main(M)
-fdomain[M-1][M-1].result()
+fdomain[M-1][M-1].result()	# wait for the final result to be computed
 domain = assemblegrid(M, fdomain)
 plt.imshow(domain)												
 plt.show()

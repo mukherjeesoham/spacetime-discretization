@@ -1,18 +1,17 @@
 #==========================================================
 # Code to solve the scalar wave equation using the
-# discretized action in null 1+1 Minkowski spacetime.
+# discretized action in null 1+1 Minkowski spacetime, using
+# null coordinates.
 # Soham 9 2017
 #==========================================================
 
 import numpy as np
-import utilities as util
+import sw_utilities as util
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import time
 import matplotlib 
-
-
 
 # Creates N+1 points.
 def main(N):
@@ -99,8 +98,7 @@ def main(N):
 # Call function
 #===================================================
 
-# single solutionba
-if(0):
+if(0):	# single solution
 	L2, zz, uu, vv, ss, runtime =main(40)
 
 	if(1):
@@ -121,8 +119,7 @@ if(0):
 		surf.set_facecolor((0,0,0,0))
 		plt.show()
 
-# convergence
-if(1):
+if(1):	# convergence
 	N   = [3, 7, 15, 31, 63]
 	Err  = np.zeros(len(N))
 	Time = np.zeros(len(N))

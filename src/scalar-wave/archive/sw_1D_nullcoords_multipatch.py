@@ -1,11 +1,12 @@
 #==========================================================
 # Code to solve the scalar wave equation using the
-# discretized action by tiling up 1+1 Minkowski spacetime.
+# discretized action by tiling up 1+1 Minkowski spacetime,
+# using null coordinates, and multiple patches.
 # Soham 9 2017
 #==========================================================
 
 import numpy as np
-import utilities as util
+import sw_utilities as util
 import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import Axes3D

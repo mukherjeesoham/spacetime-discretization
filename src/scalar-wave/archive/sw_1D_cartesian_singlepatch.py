@@ -1,37 +1,39 @@
 #==========================================================
 # Code to solve the scalar wave equation using the
-# discretized action in null 1+1 Minkowski spacetime.
-# Soham 9 2017
+# discretized action in Cartesian Coordinates.
+# Soham 8 2017
 #==========================================================
 
 import numpy as np
-import utilities as util
+import sw_utilities as util
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import time
 import matplotlib 
 
-# Creates N+1 points.
-def main(N):
+#------------------------------------------------
+# Grid
+#------------------------------------------------
+
+def main(N):					# Creates N+1 points.	
 	start = time.time()
-	#------------------------------------------------
-	# Grid
-	#------------------------------------------------
-	Du, u  = util.cheb(N)
-	Dv, v  = util.cheb(N)
-	uu, vv = np.meshgrid(u,v)
+	# Construct Chebyshev differentiation matrices.
+	D0, t  = util.cheb(N)
+	D1, x  = util.cheb(N)
+	tt, xx = np.meshgrid(t,x)
 
 	#------------------------------------------------
 	# Construct derivate + integral operators
 	#------------------------------------------------
+
+	# Construct the derivative operator
 	I  = np.eye(N+1)
 
-	DU = np.kron(Du, I)
-	DV = np.kron(I, Dv)
-
-	# note that the '2' comes from the summation over \eta^{ab}.
-	D  = np.dot(DU,DV) + np.dot(DV,DU)
+	# XXX: How to fix the orientation of the Kronecker sum?
+	D  = - np.kron(np.dot(D0, D0), I) + np.kron(I,np.dot(D1, D1)) 
+	Dx = np.kron(I, D0)
+	Dt = np.kron(D1, I)
 
 	# construct the weight matrix
 	V = np.outer(util.clencurt(N), util.clencurt(N))
@@ -39,7 +41,7 @@ def main(N):
 
 	# construct the main operator
 	A = W.dot(D)
-	
+
 	#------------------------------------------------
 	# Impose boundary conditions and construct b
 	#------------------------------------------------
@@ -47,29 +49,35 @@ def main(N):
 	BC = np.zeros((N+1,N+1))
 
 	# Dirichlet boundary conditions
-	BC[0, :] = BC[:, 0]  = 1	
+	BC[0, :] = BC[:, 0] = BC[:, -1] = BC[-1, :] = 1	
 	A[np.where(np.ravel(BC)==1)[0]] = np.eye((N+1)**2)[np.where(np.ravel(BC)==1)[0]]
+
+	# Neumann boundary conditions 
+	BC[0, :] =  -1
+	A[np.where(np.ravel(BC)==-1)[0] - (N + 1)] = Dt[np.where(np.ravel(BC)==-1)[0]]
 
 	# set the Dirichlet boundary values
 	b = np.zeros((N+1, N+1))
 
 	BC = "Sine"
-	if BC == "Gaussian":
-		b[:,  0] = np.exp(-10.0*u**2.0)	# -m
-		b[0,  :] = np.exp(-10.0*v**2.0)	# +m
-	if BC == "Sine":
-		b[:,  0] = np.sin(np.pi*u)	# -m
-		b[0,  :] = np.sin(np.pi*v)	# +m
 
+	if BC == "Gaussian":
+		b[:,  0] = b[:, -1] = np.exp(-10.0)	  # left & right boundaries
+		b[0,  :] = np.exp(-10.0*x**2.0)    	# initial data	
+	if BC == "Sine":
+		b[:,  0] = b[:, -1] = 0.0	  # left & right boundaries
+		b[0,  :] = -np.sin(np.pi*x) # initial data	
+
+	b[-1, :] = 0.0				  # time derivative
 	b = np.ravel(b)
 
 	#------------------------------------------------
 	# solve the system
 	#------------------------------------------------
-	
+
 	print("Solving a dimension %r linear system..."%np.shape(A)[0])
-	z = np.linalg.solve(A, b)
-	zz = np.reshape(z, (N+1, N+1))
+	u = np.linalg.solve(A, b)
+	uu = np.reshape(u[:(N+1)**2], (N+1, N+1))
 
 	#------------------------------------------------
 	# Analysis
@@ -82,46 +90,40 @@ def main(N):
 	if(0):
 		print "Is A positive definite?", is_pos_def(A)
 
-	ss = 2*np.sin(np.pi*((vv + uu)/2.0))*np.cos(np.pi*((vv - uu)/2.0))
-
-	ee = ss - zz
+	# FIXME: Check why you need the transpose.
+	ss = np.transpose(np.sin(np.pi*xx)*np.cos(np.pi*tt))
+	ee = ss - uu
 	L2 =  np.sqrt(np.trace(np.abs(W*np.ravel(ee**2.0))))
 	print "L2 error norm: ", L2
 
 	end = time.time()
 	runtime = end - start
-	return L2, zz, uu, vv, ss, runtime
+	return L2, uu, xx, tt, ss, runtime
 
 
 #===================================================
 # Call function
 #===================================================
 
-# single solutionba
-if(0):
-	L2, zz, uu, vv, ss, runtime =main(40)
+
+if(1):	# single solution
+	L2, uu, xx, tt, ss, runtime =main(20)
 
 	if(1):
-		fig = plt.figure(2)
+		fig = plt.figure()
 		ax = fig.gca(projection='3d')
-		plt.xlabel(r"$u$")
-		plt.ylabel(r"$v$")
+		plt.xlabel(r"$x$")
+		plt.ylabel(r"$t$")
 
-		Z = cm.viridis_r((zz-zz.min())/(zz.max()-zz.min()))
-		S = cm.viridis_r((ss-ss.min())/(ss.max()-ss.min()))
-
-		if(0):
-			surf = ax.plot_surface(uu, vv, ss, rstride=1, cstride=1,
-	               facecolors = S, shade=False, linewidth=0.8)
-		else:
-			surf = ax.plot_surface(uu, vv, zz, rstride=1, cstride=1,
-	               facecolors = Z, shade=False, linewidth=0.6)
+		Z = (uu-uu.min())/(uu.max()-uu.min())
+		colors = cm.viridis_r(Z)
+		surf = ax.plot_surface(tt, xx, uu, rstride=1, cstride=1,
+	               facecolors = colors, shade=False, linewidth=0.6)
 		surf.set_facecolor((0,0,0,0))
 		plt.show()
 
-# convergence
-if(1):
-	N   = [3, 7, 15, 31, 63]
+if(0):	# convergence
+	N   = [3, 7, 15]
 	Err  = np.zeros(len(N))
 	Time = np.zeros(len(N))
 

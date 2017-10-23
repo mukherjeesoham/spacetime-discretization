@@ -4,7 +4,7 @@
 #==========================================================
 
 import numpy as np
-import utilities as util
+import laplace_utilities as util
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy import interpolate

@@ -66,27 +66,42 @@ def main(M):
 	for i in range(int(np.max(grid))+1):
 		slice = np.transpose(np.where(grid==i))
 		for index in slice:
-
+			i = index[0]
+			j = index[1]
 			if np.sum(index) == 0:	# initial patch
+				print 60*'-'
 				print "Setting future for patch in I", index
-				bcol  = finit(util.makeinitialdata)
-				brow  = finit(util.makeinitialdata)	
+				print 60*'-'
+				bcol  = finit(lambda x: 0*np.sin(np.pi*x))
+				brow  = finit(lambda x: 0*np.sin(np.pi*x))
+				domain[i][j] = fsolve(bcol, brow)	
 
-			elif (np.prod(index) == 0 and np.sum(index) != 0):		
-				print "Setting future for patch in B", index	
+			elif (np.prod(index) == 0 and np.sum(index) != 0):	
+				print 60*'-'	
+				print "Setting future for patch in B", index
+				print 60*'-'	
 				if index[0] > index[1]:									
-					bcol  = finit(util.makeinitialdata)
-					brow  = fextract(domain[index[0]-1][index[1]], 0)	
+					bcol  = finit(lambda x: np.sin(np.pi*x))
+					brow  = fextract(domain[i-1][j], 0)	
+					domain[i][j] = fsolve(bcol, brow)
 				else:													
-					brow  = finit(util.makeinitialdata)
-					bcol  = fextract(domain[index[0]][index[1]-1], 1)
+					brow  = finit(lambda x: np.sin(np.pi*x))
+					bcol  = fextract(domain[i][j-1], 1)
+					domain[i][j] = fsolve(bcol, brow)
 			
 			else:	
-				print "Setting future for patch in C", index														
-				bcol  = fextract(domain[index[0]][index[1]-1], 1)
-				brow  = fextract(domain[index[0]-1][index[1]], 0)
+				print 60*'-'
+				print "Setting future for patch in C", index	
+				print 60*'-'													
+				bcol  = fextract(domain[i][j-1], 1)
+				brow  = fextract(domain[i-1][j], 0)
+				domain[i][j] = fsolve(bcol, brow)
 			
-			domain[index[0]][index[1]] = fsolve(bcol, brow) 
+			print "bcol", bcol.result()
+			print "brow", brow.result()
+			
+			plt.imshow(np.flipud((domain[i][j]).result()))
+			plt.show()
 	return domain 	
 
 def assemblegrid(M, fdomain):
@@ -114,13 +129,12 @@ dictionary = {
 fdomain = main(M)
 fdomain[M-1][M-1].result()	# wait for the final result to be computed
 print "Finished computation"
-domain = assemblegrid(M, fdomain)
-plt.xlim(0, M*N)
-plt.ylim(0, M*N)
-plt.imshow(np.flipud(domain))
+print fdomain
 
+
+domain = np.block([[fdomain[0][0].result(), fdomain[0][1].result()], [fdomain[1][0].result(), fdomain[1][1].result()]])
+plt.imshow(np.flipud(domain))
 for i in range(M+1):
 	plt.axhline([i*N], color='k')
 	plt.axvline([i*N], color='k')	
-
 plt.show()

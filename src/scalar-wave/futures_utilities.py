@@ -66,12 +66,6 @@ def makeboundaryvec(N, bcol, brow):
   b[0,  :] = brow
   return np.ravel(b)
 
-def makeinitialdata(x):
-  return np.sin(np.pi*x)
-
-def setzero(x):
-  return np.zeros(len(x))
-
 def makeglobalgrid(M):
   grid = np.zeros((M,M))
   for index, val in np.ndenumerate(grid):

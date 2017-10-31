@@ -14,4 +14,4 @@
             > What data structure do we use for storing the points on complex simplices? 
             > We need to store the orientation and the values at the points. Can Pachner moves help?
         > Solve for a scalar wave test particle on a background? No conservation of charge like the EM case?
-
+    > Implement a single patch to a global patch structure

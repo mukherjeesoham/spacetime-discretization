@@ -1,10 +1,89 @@
 import numpy as np
 import concurrent.futures
-import futures_utilities as util
 import matplotlib.pyplot as plt
+import math
 
 # define the max number of threads the program is allowed to use.
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+
+def cheb(N):
+	x  = np.cos(math.pi*np.arange(0,N+1)/N)
+	c  = np.concatenate(([2],np.ones(N-1),[2]))*(-1)**np.arange(0,N+1)
+	X  = np.tile(x,(N+1,1))
+	dX = X-np.transpose(X)
+	c  = np.transpose(c)
+	D  = -np.reshape(np.kron(c,1/c),(N+1,N+1))/(dX+np.eye(N+1))
+	D  = D - np.diagflat(np.sum(D,axis=1))	# diagonal entries
+
+	return D,x
+
+def clencurt(N):
+	"""
+	see <https://github.com/mikaem/spmpython>
+	CLENCURT nodes x (Chebyshev points) and weights w 
+	for Clenshaw-Curtis quadrature
+	"""
+	theta = np.pi*np.arange(0,N+1)/N
+	x  = np.cos(theta)
+	w  = np.zeros(N+1)
+	ii = np.arange(1,N)
+	v  = np.ones(N-1)
+	if np.mod(N,2)==0:
+		w[0] = 1./(N**2-1)
+		w[N] = w[0]
+		for k in np.arange(1,int(N/2.)):
+		    v = v-2*np.cos(2*k*theta[ii])/(4*k**2-1)
+		v = v - np.cos(N*theta[ii])/(N**2-1)
+	else:
+		w[0] = 1./N**2
+		w[N] = w[0]
+	for k in np.arange(1,int((N-1)/2.)+1):
+	    v = v-2*np.cos(2*k*theta[ii])/(4*k**2-1)
+	w[ii] = 2.0*v/N
+	return w
+
+def makeboundaryvec(N, bcol, brow):
+	b = np.eye(N+1)*0.0
+	b[:,  0] = bcol
+	b[0,  :] = brow
+	return np.ravel(b)
+
+def makeglobalgrid(M):
+	grid = np.zeros((M,M))
+	for index, val in np.ndenumerate(grid):
+		grid[index] = np.sum(index)
+	return grid
+
+def operator(N):
+	DU, U  = cheb(N)	# conformally compactified metric coordinates
+	DV, V  = cheb(N)
+
+	I  = np.eye(N+1)
+	DU = np.kron(DU, I)
+	DV = np.kron(I, DV)
+	
+	detJ     = np.sqrt(2.0)
+	OmegaSq  = (U**2.0 - 1.0)*(V**2.0 - 1.0)
+	sqrtdetG = 1.0/(OmegaSq + 1.0)	# blows up
+	lnOmega  = np.log(OmegaSq)/2.0
+	
+	# Matter + Curvature Lagrangians
+	LM = np.dot(DU,DV) + np.dot(DV,DU)
+	LG = (np.dot(DU, sqrtdetG*np.dot(DU, lnOmega)) + 
+				np.dot(DV, sqrtdetG*np.dot(DV, lnOmega)))
+
+	# D = (LM + LG)*detJ
+
+	# # integration weights
+	# V  = np.outer(clencurt(N), clencurt(N))
+	# W  = np.diag(np.ravel(V))                
+	# A  = W.dot(D)
+	# BC = np.zeros((N+1,N+1))
+	# BC[0, :] = BC[:, 0]  = 1  
+	# A[np.where(np.ravel(BC)==1)[0]] = np.eye((N+1)**2)[np.where(np.ravel(BC)==1)[0]]  
+	return None
+
+operator(4)
 
 def init(func):						# returns initial/boundary
 	return func(dictionary["chebnodes"])
@@ -12,7 +91,7 @@ def init(func):						# returns initial/boundary
 def solve(bcol, brow):          	# returns Patch
 	N = dictionary["size"]
 	A = dictionary["operator"]
-	b = util.makeboundaryvec(N, bcol, brow)
+	b = makeboundaryvec(N, bcol, brow)
 	patch = np.reshape(np.linalg.solve(A, b), (N+1, N+1))
 	return patch
 
@@ -39,7 +118,7 @@ def fextract(fpatch, col):          # return Future[Boundary]
 
 def main(M):
 	domain = np.zeros((M, M), dtype=object)
-	grid   = util.makeglobalgrid(M)	
+	grid   = makeglobalgrid(M)	
 	for i in range(int(np.max(grid))+1):
 		slice = np.transpose(np.where(grid==i))
 		for index in slice:
@@ -81,21 +160,23 @@ def plotgrid(domain, M, N):
 	for k in range(1, M):
 		plt.axvline([k*(N)], color='w')
 		plt.axhline([k*(N)], color='w')
-	plt.axis("off")
+	# plt.axis("off")
 	plt.show()
 
 #==================================================================
 # Function calls.
 #==================================================================
 
-N = 40	# resolution in a patch
-M = 10	# number of patches
+# if{0}:
+# 	N = 40	# resolution in a patch
+# 	M = 1	# number of patches
 
-dictionary = {
-	"size"      : N,
-	"chebnodes" : util.cheb(N)[1],
-	"operator"  : util.operator(N)
-}
+# 	dictionary = {
+# 		"size"      : N,
+# 		"chebnodes" : cheb(N)[1],
+# 		"operator"  : operator(N)
+# 	}
 
-domain = assemblegrid(M, main(M))
-plotgrid(domain, M, N)
+# 	domain = assemblegrid(M, main(M))
+# 	plotgrid(domain, M, N)
+

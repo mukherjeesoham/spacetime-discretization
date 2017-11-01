@@ -1,13 +1,14 @@
-# Things to do
+# Things to think about (and some to implement)
     > Solve for the conformally compactified spacetime. 
     > Extent the tiled code to 4D. Note that one can no longer use diamond shaped patches. 
     Need to use some kind of space-filling simplices.
-    > Port the code to Haskell.
+    > Port the code to Haskell. Have a test code in the distributed framework.
     > Solve for a time-dependent (localized in time and space) potential.
     > Issues one needs to think about
         > Compactification of inifities
             > Can we use conformal compactification, or use a conformally 'dual' mapping
             to handle infinity on the grid?
+            > Use of Bessel functions as basis functions when treating infinity?
         > Imposing boundary conditions
             > How do we treat the boundaries in 2+1, or even 3+1? They are no longer just lines.
         > Simplices
@@ -15,3 +16,14 @@
             > We need to store the orientation and the values at the points. Can Pachner moves help?
         > Solve for a scalar wave test particle on a background? No conservation of charge like the EM case?
     > Implement a single patch to a global patch structure
+    > Compute energy flux at the boundqry and energy on the patch to check for energy conservation.
+    > Look up the language of Geometric Algebra for simplices.
+    > Does there exist a conformal dual for spacetime? Concretely, the conformal dual for space (r) 
+    is a mapping (1/r). What about spacetime?
+    > Use sparse grids in our project? <see https://arxiv.org/abs/1710.09356>
+    > Strech a cube along the body diagonal till the faces are null. Are they space-flling?
+
+# Road to a publication
+    > Check for convergence; compute the energy.
+    > Have a 3+1 implementation (may require simplices).
+    > Port the code in Haskell and have a distributed implementation (not a priority).

@@ -23,8 +23,6 @@ def cheb(N):
       D  = D - np.diagflat(np.sum(D,axis=1))	# diagonal entries
   return D,x
 
-D, x = cheb(4)
-print x
 # <https://github.com/mikaem/spmpython>
 # CLENCURT nodes x (Chebyshev points) and weights w for Clenshaw-Curtis
 # quadrature

@@ -73,19 +73,46 @@ def plotgrid(domain, M, N):
 	plt.axis("off")
 	plt.show()
 
+def compute_rel_error(ss, uu):
+	V  = np.outer(util.clencurt(dictionary["size"]), util.clencurt(dictionary["size"]))
+	W  = np.diag(np.ravel(V))  
+	ee = ss - uu
+	# L2 =  np.sqrt(np.trace(np.abs(W*np.ravel(ee**2.0))))
+	return np.mean(ee)
+
 #==================================================================
 # Function calls
 #==================================================================
 
-N = 60	# resolution in a patch
-M = 4	# number of patches
+if(1):
+	N = 20	# resolution in a patch
+	M = 4	# number of patches
 
-dictionary = {
-	"size"      : N,
-	"chebnodes" : util.cheb(N)[1],
-	"operator"  : util.operator(N),
-	"potential" : util.makeglobalchart(M,N)
-}
+	dictionary = {
+		"size"      : N,
+		"chebnodes" : util.cheb(N)[1],
+		"operator"  : util.operator(N),
+		"potential" : util.makeglobalchart(M,N)
+	}
 
-domain = assemblegrid(M, main(M))
-plotgrid(domain, M, N)
+	domain = assemblegrid(M, main(M))
+	plotgrid(domain, M, N)
+
+else:
+	P = [10, 12, 14, 16, 18, 20]		# N
+	H = [2, 4, 8, 16, 32, 64]			# M
+	for k, h in enumerate(H):
+		for j, p in enumerate(P):
+			dictionary = {
+				"size"      : p,
+				"chebnodes" : util.cheb(p)[1],
+				"operator"  : util.operator(p),
+				"potential" : util.makeglobalchart(h,p)
+			}
+			N = dictionary["size"]
+			domain = assemblegrid(h, main(h))
+			if (k+j) != 0:
+				print compute_rel_error(domain_prev, domain)
+			domain_prev = domain
+			
+

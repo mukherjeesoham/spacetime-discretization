@@ -23,6 +23,13 @@
     > Use sparse grids in our project? <see https://arxiv.org/abs/1710.09356>
     > Strech a cube along the body diagonal till the faces are null. Are they space-flling?
 
+
+# Tests that needs to be included
+    > Check for h-p convergence
+    > Check for eigen values (max/min)
+    > Check for the higher mode coefficents
+    > Compute the scalar wave energy by spatially integrating the function.  
+
 # Road to a publication
     > Check for convergence; compute the energy.
     > Have a 3+1 implementation (may require simplices).

@@ -2,6 +2,7 @@ import numpy as np
 import concurrent.futures
 import futures_utilities as util
 import matplotlib.pyplot as plt
+import sw_1D_nullcoords_convergence as conv
 
 # define the max number of threads the program is allowed to use.
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
@@ -12,6 +13,12 @@ def init(func):						# returns initial/boundary
 def solve(b):          	# returns Patch
 	N = dictionary["size"]
 	A = dictionary["operator"]
+	eig = np.log(np.abs(np.linalg.eigvals(A)))
+	eig = np.abs(np.linalg.eigvals(A))
+	# print np.linalg.eigvals(A)[:-10]
+	# plt.plot(eig, '')
+	print np.amax(eig)/np.amin(eig)
+	plt.show()
 	B = np.ravel(b)
 	patch = np.reshape(np.linalg.solve(A, B), (N+1, N+1))
 	return patch
@@ -85,8 +92,8 @@ def compute_rel_error(ss, uu):
 #==================================================================
 
 if(1):
-	N = 20	# resolution in a patch
-	M = 4	# number of patches
+	N = 50	# resolution in a patch
+	M = 1	# number of patches
 
 	dictionary = {
 		"size"      : N,
@@ -99,20 +106,21 @@ if(1):
 	plotgrid(domain, M, N)
 
 else:
+	# test p convergence
 	P = [10, 12, 14, 16, 18, 20]		# N
-	H = [2, 4, 8, 16, 32, 64]			# M
-	for k, h in enumerate(H):
-		for j, p in enumerate(P):
-			dictionary = {
-				"size"      : p,
-				"chebnodes" : util.cheb(p)[1],
-				"operator"  : util.operator(p),
-				"potential" : util.makeglobalchart(h,p)
-			}
-			N = dictionary["size"]
-			domain = assemblegrid(h, main(h))
-			if (k+j) != 0:
-				print compute_rel_error(domain_prev, domain)
-			domain_prev = domain
+	H = 1								# M
+	for j, p in enumerate(P):
+		dictionary = {
+			"size"      : p,
+			"chebnodes" : util.cheb(p)[1],
+			"operator"  : util.operator(p),
+			"potential" : util.makeglobalchart(H,p)
+		}
+
+		N = dictionary["size"]
+		domain = assemblegrid(H, main(H))
+		if j != 0:
+			print conv.pconv(domain_prev, domain)
+		domain_prev = domain
 			
 

@@ -62,7 +62,7 @@ def main(M, N):
 #==================================================================
 
 N = 40	# resolution in a patch
-M = 2	# number of patches
+M = 1	# number of patches
 
 util.println()
 print "==> Starting Scalar Wave Code"
@@ -73,7 +73,7 @@ dictionary = {
 	"numpatches" : M,
 	"chebnodes"  : util.cheb(N)[1],
 	"operator"   : util.operator(N),
-	"potential"  : util.makeglobalchart(M,N),
+	"potential"  : util.makeglobalchartcopy(M,N),
 }
 
 dictionary["domain"] = main(M, N)

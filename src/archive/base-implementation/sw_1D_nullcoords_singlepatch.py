@@ -79,7 +79,7 @@ def main(N):
 	print "\nIs A symmetric?", np.allclose(A, A.T)
 
 	def is_pos_def(x):
-	    return np.all(np.linalg.eigvals(x) > 0)
+	    return np.all( > 0)
 	if(0):
 		print "Is A positive definite?", is_pos_def(A)
 

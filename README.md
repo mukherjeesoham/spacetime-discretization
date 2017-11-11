@@ -1,2 +1,3 @@
-# spacetime-discretization
-Codes to solve a scalar wave equation using spacetime discretization methods.
+## spacetime-discretization
+
+Solve a scalar wave equation using spacetime discretization methods.

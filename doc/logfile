@@ -21,14 +21,18 @@
     > Does there exist a conformal dual for spacetime? Concretely, the conformal dual for space (r) 
     is a mapping (1/r). What about spacetime?
     > Use sparse grids in our project? <see https://arxiv.org/abs/1710.09356>
-    > Strech a cube along the body diagonal till the faces are null. Are they space-flling?
-
+    > Strech a cube along the body diagonal till the faces are null 
+        [Done. Requires you the squeeze the cube by 0.707 along the diagonal] 
+        > Are they space-flling?
+    > Consistently include the potential in the code.
 
 # Tests that needs to be included
     > Check for h-p convergence
     > Check for eigen values (max/min)
     > Check for the higher mode coefficents
     > Compute the scalar wave energy by spatially integrating the function.  
+    > Check for convergence of the action 
+    > Use a filter
 
 # Road to a publication
     > Check for convergence; compute the energy.

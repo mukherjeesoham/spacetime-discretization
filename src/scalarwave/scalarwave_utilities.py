@@ -76,7 +76,10 @@ def operator(N):
   end = time.time()
   runtime = end - start
   print "Computed operator in %1.3fs" %(runtime) 
-  return A
+  return A, W
+
+def action(N):
+  pass
 
 def makeboundaryvec(N, bcol, brow):
   b = np.eye(N+1)*0.0
@@ -105,13 +108,15 @@ def makeglobalchartcopy(M,N):
     b = np.insert(b, int(column), b[int(column), :], 0) 
     b = np.insert(b, int(column), b[:, int(column)], 1) 
 
+  V  = np.outer(clencurt(N), clencurt(N))
+  b  = np.reshape(np.multiply(np.ravel(V), np.ravel(b)), (N+1, N+1)) # Add the integration weights
   pieces = np.zeros((M,M,N+1,N+1))
   hsplit = np.hsplit(b, M)
   for m, element in enumerate(hsplit):
     vsplit = np.vsplit(element, M)
     for n, chunk in enumerate(vsplit):
       pieces[m,n] = chunk
-  return pieces
+  return b, pieces
 
 def makeglobalchart(M,N):
   U = np.array([])
@@ -200,7 +205,7 @@ def eigenval(dictionary):
   println()
   print "==> Eigenval (max/min): ", emax/emin
   println()
-  return None
+  return eigenvalues
   
 def println():
   print 40*'-'
@@ -213,6 +218,7 @@ def println():
 def extractcoeffs(domain):
   N  = np.shape(domain)[0] 
   x  = cheb(N-1)[1]
+  # TODO: Use 1D arrays instead of computing the entire CM
   CP = np.polynomial.chebyshev.chebval(x, np.eye(N))
   CM = np.kron(CP, CP)  
   return np.linalg.solve(CM, np.ravel(domain))
@@ -221,7 +227,7 @@ def extractvalues(coefficents):
   N  = int(np.sqrt(np.size(coefficents)))
   x  = cheb(N-1)[1]
   CP = np.polynomial.chebyshev.chebval(x, np.eye(N))
-  CM = np.kron(CP, CP)  
+  CM = np.kron(CP, CP) 
   return np.reshape(CM.dot(coefficents),(N,N))
 
 def extractcoeffs1D(function):
@@ -234,38 +240,42 @@ def extractvalues1D(coefficents):
   N  = np.size(coefficents)
   x  = cheb(N-1)[1]
   CP = np.polynomial.chebyshev.chebval(x, np.eye(N))
-  print np.size(coefficents)
-  print np.shape(CP)
   return CP.dot(coefficents)
+
+def filterfunction(x, N):
+  p = N-1 # is this assumption valid?
+  return np.exp(-15*x**(2*p))
+
+def T1(N):
+  c = np.ones((N+1)**2)
+  c[0] = c[-1] = 2
+  T1 = np.zeros((N+1)**2)
+  for index, val in enumerate(T1):
+    T1[index] = filterfunction(index/N)/c[index]
+  return T1
+
+def T2(N, x1, x2):
+  TT = np.zeros((N+1)**2)
+  I  = np.eye((N+1)**2)
+  x  = cheb(N)[1]
+  for index, val in enumerate(TT):
+    TT[index] = np.polynomial.chebyshev.chebval(x[i], I[index])*np.polynomial.chebyshev.chebval(x[j], I[index])
+  return TT
+
+def filtervalues(N):
+  F = np.zeros(((N+1)**2, (N+1)**2))
+  for index, val in F:
+    i = index[0]
+    j = index[1]
+    F[index] = 2.0/(N*c[j])*np.dot(T1(N), T2(N, ))
+  pass
 
 #------------------------------------------------------------
 # test utilities
 #------------------------------------------------------------
 
-if(0):
-  x = cheb(10)[1]
-  uu, vv = np.meshgrid(x,x)
-  domain = np.exp(-uu**2.0/0.1)*np.exp(-vv**2.0/0.1)
-  plt.figure(1)
-  plt.imshow(domain)
-  domainN = extractvalues(extractcoeffs(domain))
-  plt.figure(2)
-  plt.imshow(domainN)
-  plt.show()
-elif(0):
-  x = cheb(10)[1]
-  uu, vv = np.meshgrid(x,x)
-  domain = np.exp(-uu**2.0/0.1)*np.exp(-vv**2.0/0.1)
-  plt.figure(1)
-  plt.imshow(domain)
-  # add zero coefficents
-  coefficentsN = np.pad(extractcoeffs(domain), (0, 23), 'constant')
-  domainN = extractvalues(coefficentsN)
-  plt.figure(2)
-  plt.imshow(domainN)
-  plt.show()
-else:
-  pass
+def prolongate(domain, N1, N2):
+  return extractvalues(np.ravel(np.pad(np.reshape(extractcoeffs(domain),(N1,N2)), (0, N2-N1), 'constant')))
 
 if(0):
   x = cheb(10)[1]

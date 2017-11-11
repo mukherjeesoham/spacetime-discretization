@@ -52,37 +52,42 @@ def main(M, N):
 			
 			B[0, :] = brow	# we need these to set BCs at edges
 			B[:, 0] = bcol	# BCs at edges
-
 			domain[index[0],index[1]] = solve(B)
-
 	return util.assemblegrid(M, N, domain)
 
 #==================================================================
 # Function calls
 #==================================================================
 
-N = 40	# resolution in a patch
-M = 1	# number of patches
 
-util.println()
-print "==> Starting Scalar Wave Code"
-util.println()
+#--------------------------------------------------------------------
+# test coefficents
+#--------------------------------------------------------------------
+if(0):
+	dictionary["domain"] = main(M, N)
+	util.plotgrid(dictionary)
+	plt.semilogy(np.abs(util.extractcoeffs(dictionary["domain"])))
+	plt.xlabel("$\mu$")
+	plt.ylabel("$c_{\mu}$")
+	plt.show()
 
-dictionary = {
-	"size"       : N,
-	"numpatches" : M,
-	"chebnodes"  : util.cheb(N)[1],
-	"operator"   : util.operator(N),
-	"potential"  : util.makeglobalchartcopy(M,N),
-}
+#--------------------------------------------------------------------
+# test p-convergence
+#--------------------------------------------------------------------
 
-dictionary["domain"] = main(M, N)
+patches = []
+for N in range(12,20,1):
+	M = 1	# number of patches
 
-#==================================================================
-# utilities and tests [check for convergence]
-#==================================================================
-util.plotgrid(dictionary)
-# util.eigenval(dictionary)
+	dictionary = {
+		"size"       : N,
+		"numpatches" : M,
+		"chebnodes"  : util.cheb(N)[1],
+		"operator"   : util.operator(N)[0],
+		"potential"  : util.makeglobalchartcopy(M,N)[1]}
+	patches.append(main(M,N))
 
 
-
+for index, patch in enumerate(patches):
+	print np.shape(util.prolongate(patch, index, index+1))
+	

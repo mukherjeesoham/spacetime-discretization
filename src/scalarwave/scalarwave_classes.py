@@ -272,7 +272,7 @@ class conv(object):
 	convergence.
 	"""
 	@staticmethod
-	def pconv(NP, BROW = None, BCOL = None, FN=None, SOL=None):
+	def pconv(NP, BROWfn = None, BCOLfn = None, FN = None, SOL=None):
 		"""
 		For convergence tests we can only pass functional forms of BROW, BCOL 
 		and the potential
@@ -293,16 +293,26 @@ class conv(object):
 		for index, p in enumerate(NP):
 			PATCH = patch(p)
 			print "   + Computing patch for N = %r"%(p)
-			patch.solve(PATCH, \
-			  			patch.setBCs(PATCH, BROW(patch.chebnodes(PATCH)), BCOL(patch.chebnodes(PATCH)), FN), 
-			  			patch.operator(PATCH))
+
+			if (BROWfn == None) or (BCOLfn == None):
+				patch.solve(PATCH, \
+			  				patch.setBCs(PATCH, fn = FN), \
+			  				patch.operator(PATCH))
+			else:
+				patch.solve(PATCH, \
+			  				patch.setBCs(PATCH, BROW = BROWfn(patch.chebnodes(PATCH)), \
+			  									BCOL = BCOLfn(patch.chebnodes(PATCH)), fn = FN), \
+			  				patch.operator(PATCH))
+
 			PATCHES.append(PATCH)
 			if SOL == None: 
 				if index !=0:
 					W 	= np.diag(patch.integrationweights(PATCHES[index]))
 					S 	= np.ravel(PATCHES[index].patchval)
 					C 	= np.ravel(patch.projectpatch(PATCHES[index-1], NP[index]))
-					RL2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)/np.abs(np.dot(W, S))))
+					# FIXME: Which definition of error to use?
+					# RL2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)/np.abs(np.dot(W, S))))
+					RL2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)))	
 					print "   \t \t RL2: ", RL2
 					ERROR.append(RL2)
 			else:
@@ -310,7 +320,6 @@ class conv(object):
 				S 	= np.ravel(PATCHES[index].patchval)
 				XX, YY = np.meshgrid(patch.chebnodes(PATCH), patch.chebnodes(PATCH))
 				C = np.ravel(SOL(XX, YY))
-
 				L2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)))
 				print "   \t \t L2: ", L2
 				ERROR.append(L2)

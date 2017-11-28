@@ -78,12 +78,9 @@ class spec(object):
 
 class patch(spec):
 
-	def __init__(self, N=10, M = 1, loc = np.array([0,0])):
+	def __init__(self, N, loc = None):
 		self.N        = N
-		self.M 		  = M
 		self.loc 	  = loc
-		self.patchval = None
-		self.bcmatrix = None
 
 	@staticmethod
 	def chebnodes(self):
@@ -116,57 +113,57 @@ class patch(spec):
 		BC = np.zeros((N+1,N+1))
 		BC[0, :] = BC[:, 0] = 1 # Set Dirichlet BCs at adjacent edges
 		OP[np.where(np.ravel(BC)==1)[0]] = np.eye((N+1)**2)[np.where(np.ravel(BC)==1)[0]]  
+		self.operator = OP
 		return OP
 
+	@staticmethod
+	def eigenval(self):
+		print "==> Computing eigenvalues"
+		eigenvalues = np.linalg.eigvals(self.operator)
+		emax = np.amax(np.abs(eigenvalues))
+		emin = np.amin(np.abs(eigenvalues))
+		print "   - Eigenval (max/min): ", emax/emin
+		return eigenvalues
+  
 	def patchgrid(self):
 		uu, vv = np.meshgrid(spec.chebnodes(self.N), spec.chebnodes(self.N))
 		return uu, vv
 
-	def patchpotential(self, profile):
-		PV = np.zeros((self.N+1, self.N+1))
-		v = u = spec.chebnodes(self.N)
-		shift = np.arange(-self.M + 1, self.M, 2)
-		scale = self.M
-		for index, val in np.ndenumerate(PV):
-			t = (u[index[0]] + v[index[1]])/2.0
-			r = (v[index[0]] - u[index[1]])/2.0
-			PV[index] = profile(t, r)
-		return PV
-
-	def extractpatchBC(self, column):		
+	@staticmethod
+	def extractpatchBC(PATCH, column):		
 		"""
 		Returns Boundary of a patch
 		"""
 		if column == 1:						
-			return self.patchval[:,  -1]
+			return PATCH.patchval[:,  -1]
 		else:
-			return self.patchval[-1,  :]	
+			return PATCH.patchval[-1,  :]	
 
-	def setBCs(self, BROW = None, BCOL = None, fn = None):	
+	def setBCs(self, BROW, BCOL, PV = None):	
 		"""
 		Computes the boundary condition + potential array. 
 		Note that none of the inputs are necessary to call solve.
 		"""
-		if fn == None:
+		if not isinstance(PV, np.ndarray):
 			PBC = np.zeros((self.N + 1, self.N + 1))
 		else:
-			PBC = self.patchpotential(fn)
+			PBC = PV
+			
+		# NOTE: Multiply the potential with the integration weights since it 
+		# appears under the integral sign in the action
 		PBC = np.reshape(np.multiply(np.diag(self.integrationweights(self)), \
-			np.ravel(PBC)), (self.N+1, self.N+1))
+							np.ravel(PBC)), (self.N+1, self.N+1))
 
-		if not (isinstance(BROW, np.ndarray) or isinstance(BCOL, np.ndarray)):
-			PBC[0, :] = np.zeros(self.N+1)
-			PBC[:, 0] = np.zeros(self.N+1)
-		else:
-			PBC[0, :] = BROW
-			PBC[:, 0] = BCOL
+		PBC[0, :] = BROW
+		PBC[:, 0] = BCOL
+
 		self.bcmatrix = PBC
 		return self.bcmatrix
 
 	def solve(self, boundaryconditions, operator):	
 		self.patchval = np.reshape(np.linalg.solve(operator, \
 			np.ravel(boundaryconditions)), (self.N+1, self.N+1))
-		return self.patchval
+		return self
 
 	@staticmethod
 	def extractpatchcoeffs(self):
@@ -200,10 +197,26 @@ class patch(spec):
 			plt.close()
 		return None
 
-	#--------------------------------------------------------------------------------
-	# Functions to go from global to patch-local coordinates
-	#--------------------------------------------------------------------------------
-	
+class multipatch(object):
+	"""
+	The main function, which after futurization,
+	takes the size and number of patches, the boundary conditions/the potential
+	and computes, and then assembles the entire solution
+	"""
+	def __init__(self, npatches, nmodes, leftboundary, rightboundary, potential):
+		self.M      = npatches
+		self.N 		= nmodes
+		self.funcLB = leftboundary
+		self.funcRB = rightboundary
+		self.funcV  = potential
+
+	@staticmethod
+	def makeglobalgrid(M):
+		grid = np.zeros((M,M))
+		for index, val in np.ndenumerate(grid):
+			grid[index] = np.sum(index)
+		return grid
+
 	@staticmethod
 	def shifts(M):
 		L = np.zeros((M, M), dtype=object)
@@ -212,133 +225,76 @@ class patch(spec):
 				L[k, l] =  np.array([i, -j])
 		return L.T
 
-	def patchtogrid(self, index):
+	def assemblegrid(self, domain):
 		M = self.M
-		S = self.shifts(M)
-		X = spec.chebnodes(self.N)
-		self.GX = np.sort((X + S[index[0], index[1]][0])/M)
-		self.GY = np.sort((X + S[index[0], index[1]][1])/M)
-		return self.GX, self.GY
+		N = self.N
+		I = []
+		domain[M-1, M-1]
+		for i in range(M):
+			J = []
+			for j in range(M):  
+		  		J.append(domain[i,j].patchval)
+			I.append(J)
+  
+		blocks 	= np.block(I)
+		columns = np.linspace(0, M*(N+1), M+1)[1:-1]
+		blocks 	= np.delete(blocks, columns, 0) 
+		blocks 	= np.delete(blocks, columns, 1) 
+		return blocks
 
-	def gridtopatch(self, index):
+	def computelocalV(self, XP, YP):
+		XX, YY = np.meshgrid(XP, YP)
+		if self.funcV == None:
+			return (XX + YY)*0
+		else:
+			return self.funcV(XX, YY)
+
+	def gridtopatch(self, PATCH, index):
 		M = self.M
 		S = self.shifts(M)
-		X = self.GX
-		Y = self.GY
-		self.PX = (X - S[index[0], index[1]][0])*M
-		self.PY = (Y - S[index[0], index[1]][1])*M
+		X = spec.chebnodes(PATCH.N)
+		Y = spec.chebnodes(PATCH.N)
+		self.PX = np.sort((X + S[index[0], index[1]][0])/M)
+		self.PY = np.sort(-(Y + S[index[0], index[1]][1])/M)
 		return self.PX, self.PY
 
 	def patchjacobian(M):
 		pass
 
-if(0):	# test transformation code
-	PATCH  = patch(29, 2)
+	def globalsolve(self):
+		domain = np.zeros((self.M, self.M), dtype=object)
+		grid   = self.makeglobalgrid(self.M)	
+		PATCH  = patch(self.N)
 
-	X, Y   = patch.patchtogrid(PATCH, [0,0])
-	XX, YY = np.meshgrid(X, Y)
-	Z00 = np.exp(-np.pi*XX**2.0)*np.sin(np.pi*YY)
+		# FIXME: Hacky way to compute the Jacobian
+		OPERATOR = patch.operator(PATCH)/self.M
 
-	X, Y   = patch.patchtogrid(PATCH, [0,1])
-	XX, YY = np.meshgrid(X, Y)
-	Z01 = np.exp(-np.pi*XX**2.0)*np.sin(np.pi*YY)
+		for i in range(int(np.max(grid))+1):
+			slice = np.transpose(np.where(grid==i))
+			for index in slice:
+				PATCH.loc = index
+				print "Computing patch: ", index
+				XP, YP = self.gridtopatch(PATCH, index) 							
+				if np.sum(index) == 0:	# initial patch		
+					bcol  = self.funcLB(YP)
+					brow  = self.funcLB(XP)
+				elif (np.prod(index) == 0 and np.sum(index) != 0):	
+					if index[0] > index[1]:									
+						bcol  = self.funcLB(YP)
+						brow  = patch.extractpatchBC(domain[index[0]-1,index[1]], 0)	
+					else:	
+						bcol  = patch.extractpatchBC(domain[index[0],index[1]-1], 1)												
+						brow  = self.funcLB(XP)
+				else:												
+					bcol  = patch.extractpatchBC(domain[index[0],index[1]-1], 1)
+					brow  = patch.extractpatchBC(domain[index[0]-1,index[1]], 0)
 
-	X, Y   = patch.patchtogrid(PATCH, [1,0])
-	XX, YY = np.meshgrid(X, Y)
-	Z10 = np.exp(-np.pi*XX**2.0)*np.sin(np.pi*YY)
+				BC = patch.setBCs(PATCH, BROW = brow, BCOL = bcol, PV = self.computelocalV(XP, YP))
+				domain[index[0],index[1]] = patch.solve(PATCH, BC, OPERATOR)
 
-	X, Y   = patch.patchtogrid(PATCH, [1,1])
-	XX, YY = np.meshgrid(X, Y)
-	Z11 = np.exp(-np.pi*XX**2.0)*np.sin(np.pi*YY)
-
-	RP = np.block([[Z00, Z01], [Z10, Z11]]) 
-
-	MM, NN = np.meshgrid(spec.chebnodes(59), spec.chebnodes(59))
-	FP = np.exp(-np.pi*MM**2.0)*np.sin(np.pi*NN)
+		self.patchlibrary  = domain
+		self.globalsol = self.assemblegrid(self.patchlibrary)
+		return self.globalsol
 
 
-	import matplotlib.pyplot as plt
-	plt.subplot(1,2,1)
-	plt.imshow(RP)
-	plt.subplot(1,2,2)
-	plt.imshow(FP)
-	plt.show()
 
-class conv(object):
-	"""
-	The class contains all the tools to test convergence 
-	as we increase the number of patches or the number of 
-	modes in each patch. Currently it can only compute 
-	convergence.
-	"""
-	@staticmethod
-	def pconv(NP, BROWfn = None, BCOLfn = None, FN = None, SOL=None):
-		"""
-		For convergence tests we can only pass functional forms of BROW, BCOL 
-		and the potential
-		"""
-		print 60*'='
-		print "==> Testing p-convergence"
-		print 60*'='
-		if SOL == None:
-			print "   - No functional form of the solution is provided."
-			print "   - Computing relative L2 norm of the error."
-		else:
-			print "   - Functional form of the solution is provided."
-			print "   - Computing L2 norm of the error."
-
-		PATCHES = []
-		ERROR   = []
-
-		for index, p in enumerate(NP):
-			PATCH = patch(p)
-			print "   + Computing patch for N = %r"%(p)
-
-			if (BROWfn == None) or (BCOLfn == None):
-				patch.solve(PATCH, \
-			  				patch.setBCs(PATCH, fn = FN), \
-			  				patch.operator(PATCH))
-			else:
-				patch.solve(PATCH, \
-			  				patch.setBCs(PATCH, BROW = BROWfn(patch.chebnodes(PATCH)), \
-			  									BCOL = BCOLfn(patch.chebnodes(PATCH)), fn = FN), \
-			  				patch.operator(PATCH))
-
-			PATCHES.append(PATCH)
-			if SOL == None: 
-				if index !=0:
-					W 	= np.diag(patch.integrationweights(PATCHES[index]))
-					S 	= np.ravel(PATCHES[index].patchval)
-					C 	= np.ravel(patch.projectpatch(PATCHES[index-1], NP[index]))
-					# FIXME: Which definition of error to use?
-					# RL2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)/np.abs(np.dot(W, S))))
-					RL2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)))	
-					print "   \t \t RL2: ", RL2
-					ERROR.append(RL2)
-			else:
-				W 	= np.diag(patch.integrationweights(PATCHES[index]))
-				S 	= np.ravel(PATCHES[index].patchval)
-				XX, YY = np.meshgrid(patch.chebnodes(PATCH), patch.chebnodes(PATCH))
-				C = np.ravel(SOL(XX, YY))
-				L2 = np.sqrt(np.abs(np.dot(W, (S-C)**2.0)))
-				print "   \t \t L2: ", L2
-				ERROR.append(L2)
-	
-		print "   - Finished computing L2 norm. Saving results..."	
-		import matplotlib.pyplot as plt
-		with plt.rc_context({ "font.size": 20., "axes.titlesize": 20., "axes.labelsize": 20., \
-         "xtick.labelsize": 20., "ytick.labelsize": 20., "legend.fontsize": 20., \
-         "figure.figsize": (20, 12), \
-		 "figure.dpi": 300, "savefig.dpi": 300, "text.usetex": True}):
-			if SOL == None:
-				plt.semilogy(NP[1:], ERROR, 'm-o')
-			else:
-				plt.semilogy(NP, ERROR, 'm-o')
-			plt.xlabel(r"$N(p)$")
-			plt.ylabel(r"$L_2~\rm{norm}~(\rm{Log~scale})$")
-			plt.grid()
-			plt.title(r"$\rm{Convergence~for~(p)~refinment}$")
-			plt.savefig("./output/p-conv.pdf", bbox_inches='tight')
-			plt.close()
-		print "Done."
-		return None

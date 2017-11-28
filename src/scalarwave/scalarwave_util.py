@@ -172,16 +172,22 @@ class patch(spec):
 		return np.reshape(np.linalg.solve(CM, np.ravel(self.patchval)), (self.N+1, self.N+1))
 
 	@staticmethod
-	def extractpatchvalues(coefficents):
+	def computepatchvalues(coefficents, X = None, Y = None):
 		N = int(np.sqrt(np.size(coefficents)))-1
 		CP = np.polynomial.chebyshev.chebval(spec.chebnodes(N), np.eye(N+1))
 		CM = np.kron(CP, CP) 
 		return np.reshape(CM.dot(np.ravel(coefficents)), (N+1, N+1))
 
-	def projectpatch(self, NB = 0): 
-		return self.extractpatchvalues(np.pad(self.extractpatchcoeffs(self), (0, NB -
-		self.N), 'constant'))
+	def projectpatch(self, NB): 
+		self.patchval =  self.computepatchvalues(np.pad(self.extractpatchcoeffs(self), (0, NB - self.N), 'constant'))
+		return self
 	
+	def restrictpatch(self, NB): 
+		coeffmatrix   = self.extractpatchcoeffs(self)
+		restrictedcoeffmatrix = coeffmatrix[0:NB, 0:NB]
+		self.patchval =  self.computepatchvalues()
+		return self
+
 	def plotpatch(self):
 		import matplotlib.pyplot as plt
 		import scipy
@@ -258,43 +264,134 @@ class multipatch(object):
 		self.PY = np.sort(-(Y + S[index[0], index[1]][1])/M)
 		return self.PX, self.PY
 
+	@staticmethod
 	def patchjacobian(M):
 		pass
 
+	@staticmethod
+	def projectelement():
+		pass
+
 	def globalsolve(self):
-		domain = np.zeros((self.M, self.M), dtype=object)
+		domain   = np.zeros((self.M, self.M), dtype=object)
 		grid   = self.makeglobalgrid(self.M)	
 		PATCH  = patch(self.N)
 
-		# FIXME: Hacky way to compute the Jacobian
-		OPERATOR = patch.operator(PATCH)/self.M
+		# Compute the Jacobian and correct for the operator
+		OPERATOR = patch.operator(PATCH)
 
 		for i in range(int(np.max(grid))+1):
 			slice = np.transpose(np.where(grid==i))
 			for index in slice:
 				PATCH.loc = index
 				print "Computing patch: ", index
-				XP, YP = self.gridtopatch(PATCH, index) 							
+				XP, YP = self.gridtopatch(PATCH, index) 	
+						
 				if np.sum(index) == 0:	# initial patch		
 					bcol  = self.funcLB(YP)
-					brow  = self.funcLB(XP)
+					brow  = self.funcRB(XP)
 				elif (np.prod(index) == 0 and np.sum(index) != 0):	
-					if index[0] > index[1]:									
+					if index[0] > index[1]:							
 						bcol  = self.funcLB(YP)
-						brow  = patch.extractpatchBC(domain[index[0]-1,index[1]], 0)	
+						brow  = patch.extractpatchBC(domain[index[0]-1, index[1]], 0)	
 					else:	
-						bcol  = patch.extractpatchBC(domain[index[0],index[1]-1], 1)												
-						brow  = self.funcLB(XP)
+						bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)												
+						brow  = self.funcRB(XP)
 				else:												
-					bcol  = patch.extractpatchBC(domain[index[0],index[1]-1], 1)
-					brow  = patch.extractpatchBC(domain[index[0]-1,index[1]], 0)
+					bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)
+					brow  = patch.extractpatchBC(domain[index[0]-1, index[1]], 0)
 
 				BC = patch.setBCs(PATCH, BROW = brow, BCOL = bcol, PV = self.computelocalV(XP, YP))
-				domain[index[0],index[1]] = patch.solve(PATCH, BC, OPERATOR)
+				domain[index[0], index[1]] = PATCH.solve(BC, OPERATOR)	# returns a patch object
 
-		self.patchlibrary  = domain
-		self.globalsol = self.assemblegrid(self.patchlibrary)
-		return self.globalsol
+		return domain
 
 
+class conv(object):
+	"""
+	The class contains all the tools to test convergence 
+	as we increase the number of patches or the number of 
+	modes in each patch. Currently it can only compute 
+	convergence.
+	"""
 
+	def __init__(self, nmodevec, rightboundary, leftboundary, potential = None, analyticsol = None):
+		self.nmodevec	   = nmodevec
+		self.rightboundary = rightboundary
+		self.leftboundary  = leftboundary
+		self.funcV	       = potential 
+		self.analyticsol   = analyticsol
+
+	@staticmethod
+	def projectanalyticsolutiononpatch(exactsolfunc, N):
+		x, y  = np.meshgrid(spec.chebnodes(N), spec.chebnodes(N))
+		PATCH = patch(N)
+		PATCH.patchval = exactsolfunc(x,y)
+		return PATCH.projectpatch(N)
+
+	@staticmethod
+	def computeLXerror(PCS, PAS, error="L2"):
+		CS = np.ravel(PCS.patchval)
+		AS = np.ravel(np.fliplr(np.flipud(PAS.patchval)))
+		GW = np.diag(patch.integrationweights(PAS))
+		
+		if error == "L2":
+			ERROR = np.sqrt(np.abs(np.dot(GW, (CS-AS)**2.0)/np.abs(np.dot(GW, AS**2.0))))
+		elif error == "L1":
+			ERROR = np.sqrt(np.abs(np.dot(GW, (CS-AS))/np.abs(np.dot(GW, AS))))
+		elif error == "Linf":
+			ERROR = np.amax(np.abs(CS-AS))
+		else:
+			raise ValueError('Do not know which error to compute.')
+		return ERROR
+
+	def pconv(self, show):
+		"""
+		For convergence tests we only pass functional forms of BROW, BCOL 
+		and the potential
+		"""
+		print 60*'='
+		print "==> Testing p-convergence"
+		print 60*'='
+
+		ERROR = np.zeros(np.size(self.nmodevec))
+
+		for index, nmodes in enumerate(self.nmodevec):
+			computationaldomain = multipatch(npatches=1, nmodes=nmodes, \
+							leftboundary  = self.leftboundary,
+							rightboundary = self.rightboundary,
+							potential 	  = self.funcV)
+			domain = computationaldomain.globalsolve()
+
+			# project both the computed solution and the analytic solution to
+			# higher number of points (nmodes x 2)
+			PCS = domain[0,0].projectpatch(nmodes*2)
+			PAS = self.projectanalyticsolutiononpatch(self.analyticsol, nmodes*2)
+			if(0):
+				import matplotlib.pyplot as plt
+				plt.subplot(1,2,1)
+				plt.imshow(PCS.patchval)
+				plt.subplot(1,2,2)
+				plt.imshow(np.fliplr(np.flipud(PAS.patchval)))
+				plt.show()
+			ERROR[index] = self.computeLXerror(PCS, PAS, error = "L2")
+
+		print "   - Finished computing L2 norm. Saving results..."		
+
+		if(show):
+			import matplotlib.pyplot as plt
+			plt.semilogy(self.nmodevec, ERROR, 'm-o')
+			plt.xticks(self.nmodevec)
+			plt.xlabel(r"$N(p)$")
+			plt.title(r"$L_2~\rm{norm}~(\rm{Log~scale})$")
+			plt.grid()
+			plt.show()
+		print "Done."
+
+convergencetest = conv(nmodevec = np.arange(2,20,1), \
+						leftboundary  = lambda x: np.sin(4*np.pi*x), \
+						rightboundary = lambda y: np.sin(4*np.pi*y), \
+						potential 	  = None, \
+						analyticsol   = lambda x, y: np.sin(4*np.pi*x) + np.sin(4*np.pi*y))
+
+convergencetest.pconv(1)

@@ -39,8 +39,26 @@ if(0):
 						   analyticsol   = lambda x, y: np.exp(-y**2.0/0.1) + np.exp(-y**2.0/0.1))
 	convergencetest.pconv(show=1)
 
-if(0):	# test 1D projection
-	x = np.linspace(-1, 1, 1000)
-	plt.plot(x, x**3.0, "k--")
-	plt.plot(spec.chebnodes(80), projectboundary1D(lambda x: x**3.0, 80), linewidth=0.8)
+if(0):	# test 1D functions
+	npoints = 20
+	nmodes  = 20
+	f = lambda x: np.exp(-x**2.0/0.1)
+	
+	x  = spec.chebnodes(npoints)
+	v  = spec.projectfunction1D(f, nmodes, npoints)
+	s  = f(x)
+	print "L2 Error norm: ", np.sqrt(np.abs(np.dot(spec.chebweights(npoints), \
+						(v-s)**2.0)/np.abs(np.dot(spec.chebweights(npoints), s**2.0))))
+	plt.plot(x, v, 'k.')
+	plt.plot(x, f(x), 'm--', linewidth=0.5)
 	plt.show()
+
+if(0):	# test 2D functions
+	npoints = 9
+	nmodes  = 9
+	f = lambda x, y: np.exp(-x**2.0/0.1) + np.exp(-y**2.0/0.1)
+	x = spec.chebnodes(npoints)
+	xx, yy = np.meshgrid(x, x)
+	s  = f(xx, yy)
+	v  = spec.projectfunction2D(f, nmodes, npoints)
+	

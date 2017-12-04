@@ -1,12 +1,20 @@
-#===============================================================
+#========================================================================
 # Utilities for scalar wave equation in Minkowski Spacetime
 # Soham M 10/2017
-#===============================================================
+#========================================================================
 
 import numpy as np
+from scipy import integrate
+from scipy.integrate import quad, dblquad
 
+#========================================================================
+# Class containing basic methods
+#========================================================================
 class spec(object):
 
+	#--------------------------------------------------------------------
+	# Function definitions for spectral integration and differentiation
+	#--------------------------------------------------------------------
 	def __init__(self, N):
 		self.N = N
 
@@ -21,7 +29,7 @@ class spec(object):
 		if (N != 0):
 			return np.cos(np.pi*np.arange(0,N+1)/N)
 		else:
-			return np.array()
+			return np.array([0])
 
 	@staticmethod
 	def chebmatrix(N):
@@ -68,26 +76,36 @@ class spec(object):
 		W[ind] = 2.0*v/N
 		return W
 
-	@staticmethod
-	def vandermonde1D(m, n):
-		T = np.eye(100)	# max 100 supported
-		X = spec.chebnodes(n)
-		V = np.zeros((m+1, n+1))
-		for index, val in np.ndenumerate(V):
-			V[index] = np.polynomial.chebyshev.chebval(X[index[0]], T[index[1]])
-		return V
+	#--------------------------------------------------------------------
+	# Function definitions for projecting in the 1D case
+	#--------------------------------------------------------------------
 
 	@staticmethod
-	def computevalues1D(C, N):
-		CM = spec.vandermonde1D(N, N)
-		return CM.dot(C)
-	
+	def vandermonde1D(M, N):
+		T    = np.eye(100)
+		X    = spec.chebnodes(N)
+		MX   = np.arange(0, M+1, 1)
+		VNDM = np.zeros((N+1, M+1))
+		for i, _x in enumerate(X):
+			for j, _m in enumerate(MX):
+				VNDM[i, j] = np.polynomial.chebyshev.chebval(_x, T[_m])
+		return VNDM
+
 	@staticmethod
-	def projectboundary1D(function, M):
+	def computevalues1D(COEFF, N):
+		VNDM = spec.vandermonde1D(len(COEFF)-1, N)
+		FN 	 = np.zeros(N+1)
+		for i, _x in enumerate(VNDM):
+			FN[i] = np.dot(_x, COEFF)
+		return FN
+
+	@staticmethod
+	def projectfunction1D(function, nmodes, npoints):
 		"""
 		Returns M+1 length vector, since one has
 		to include T[0, x]
 		"""
+		M = nmodes
 		C = np.zeros(M+1)
 		for m in range(M+1):
 			C[m] = integrate.quadrature(lambda x: function(np.cos(x))*np.cos(m*x), \
@@ -96,13 +114,43 @@ class spec(object):
 		MX      = np.diag(np.repeat(np.pi/2.0, M+1))
 		MX[0]   = MX[0]*2.0
 		COEFFS  = np.linalg.solve(MX, C)
-		VALS    = computevalues1D(COEFFS, M)
+		VALS    = spec.computevalues1D(COEFFS, npoints)
 		return VALS
+
+	#--------------------------------------------------------------------
+	# Function definitions for projecting in the 2D case
+	#--------------------------------------------------------------------
+
+	@staticmethod
+	def vandermonde2D(M, N):
+		pass
+
+	@staticmethod
+	def computevalues2D(COEFF, N):
+		pass
+
+	@staticmethod
+	def projectfunction2D(function, nmodes, npoints):
+		"""
+		Returns M+1 length vector, since one has
+		to include T[0, x]
+		"""
+		M = nmodes
+		C = np.zeros((M+1, M+1))
+		for m in range(M+1):
+			for n in range(M+1):
+				C[m, n] = integrate.nquad(lambda x, y: function(np.cos(x), np.cos(y))*np.cos(m*x)*np.cos(n*y), \
+					[[-1, 1],[-1, 1]])[0]
+		
+		return None
 
 	@staticmethod
 	def createfilter():
 		pass
 
+#========================================================================
+# Class containing methods to handle a single patch
+#========================================================================
 class patch(spec):
 
 	def __init__(self, N, loc = None):

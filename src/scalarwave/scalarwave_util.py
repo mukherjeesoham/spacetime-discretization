@@ -21,7 +21,7 @@ class spec(object):
 		if (N != 0):
 			return np.cos(np.pi*np.arange(0,N+1)/N)
 		else:
-			raise ValueError('Number of points cannot be zero!')
+			return np.array()
 
 	@staticmethod
 	def chebmatrix(N):
@@ -69,11 +69,38 @@ class spec(object):
 		return W
 
 	@staticmethod
-	def createfilter():
-		pass
+	def vandermonde1D(m, n):
+		T = np.eye(100)	# max 100 supported
+		X = spec.chebnodes(n)
+		V = np.zeros((m+1, n+1))
+		for index, val in np.ndenumerate(V):
+			V[index] = np.polynomial.chebyshev.chebval(X[index[0]], T[index[1]])
+		return V
 
 	@staticmethod
-	def computechebpoly():
+	def computevalues1D(C, N):
+		CM = spec.vandermonde1D(N, N)
+		return CM.dot(C)
+	
+	@staticmethod
+	def projectboundary1D(function, M):
+		"""
+		Returns M+1 length vector, since one has
+		to include T[0, x]
+		"""
+		C = np.zeros(M+1)
+		for m in range(M+1):
+			C[m] = integrate.quadrature(lambda x: function(np.cos(x))*np.cos(m*x), \
+				0, np.pi, tol=1.49e-15, rtol=1.49e-15, maxiter=500)[0]
+
+		MX      = np.diag(np.repeat(np.pi/2.0, M+1))
+		MX[0]   = MX[0]*2.0
+		COEFFS  = np.linalg.solve(MX, C)
+		VALS    = computevalues1D(COEFFS, M)
+		return VALS
+
+	@staticmethod
+	def createfilter():
 		pass
 
 class patch(spec):
@@ -82,7 +109,6 @@ class patch(spec):
 		self.N        = N
 		self.loc 	  = loc
 
-	@staticmethod
 	def chebnodes(self):
 		"""
 		Compute the integration weight matrix for the 2D grid
@@ -167,25 +193,27 @@ class patch(spec):
 
 	@staticmethod
 	def extractpatchcoeffs(self):
-		CP = np.polynomial.chebyshev.chebval(spec.chebnodes(self.N), np.eye(self.N+1))
+		CP = spec.vandermonde1D(self.N, self.N)
 		CM = np.kron(CP, CP)  
 		return np.reshape(np.linalg.solve(CM, np.ravel(self.patchval)), (self.N+1, self.N+1))
 
-	@staticmethod
-	def computepatchvalues(coefficents, X = None, Y = None):
-		N = int(np.sqrt(np.size(coefficents)))-1
-		CP = np.polynomial.chebyshev.chebval(spec.chebnodes(N), np.eye(N+1))
+	def computepatchvalues(self, coefficents):
+		CP = spec.vandermonde1D(self.N, self.N)
 		CM = np.kron(CP, CP) 
-		return np.reshape(CM.dot(np.ravel(coefficents)), (N+1, N+1))
+		print np.shape(CM.dot(np.ravel(coefficents)))
+		# return np.reshape(CM.dot(np.ravel(coefficents)), (self.N+1, self.N+1))
 
 	def projectpatch(self, NB): 
 		self.patchval =  self.computepatchvalues(np.pad(self.extractpatchcoeffs(self), (0, NB - self.N), 'constant'))
 		return self
 	
 	def restrictpatch(self, NB): 
-		coeffmatrix   = self.extractpatchcoeffs(self)
-		restrictedcoeffmatrix = coeffmatrix[0:NB, 0:NB]
-		self.patchval =  self.computepatchvalues()
+		np.set_printoptions(precision=2)
+		CM = self.extractpatchcoeffs(self)
+		mask = np.zeros(np.shape(CM))
+		mask[0:NB, 0:NB] = 1
+		RCM = np.multiply(mask, CM)
+		self.patchval  =  self.computepatchvalues(RCM)
 		return self
 
 	def plotpatch(self):
@@ -273,7 +301,7 @@ class multipatch(object):
 		pass
 
 	def globalsolve(self):
-		domain   = np.zeros((self.M, self.M), dtype=object)
+		domain = np.zeros((self.M, self.M), dtype=object)
 		grid   = self.makeglobalgrid(self.M)	
 		PATCH  = patch(self.N)
 
@@ -284,7 +312,8 @@ class multipatch(object):
 			slice = np.transpose(np.where(grid==i))
 			for index in slice:
 				PATCH.loc = index
-				print "Computing patch: ", index
+				if not self.M == 1:
+					print "Computing patch: ", index
 				XP, YP = self.gridtopatch(PATCH, index) 	
 						
 				if np.sum(index) == 0:	# initial patch		
@@ -345,6 +374,14 @@ class conv(object):
 			raise ValueError('Do not know which error to compute.')
 		return ERROR
 
+	@staticmethod
+	def computeL2forPCS(PCS, nmodes, error="L2"):
+		CS = np.ravel(PCS.patchval)
+		AS = np.ravel(PCS.restrictpatch(nmodes).patchval)
+		GW = np.diag(patch.integrationweights(PCS))
+		ERROR = np.sqrt(np.abs(np.dot(GW, (CS-AS)**2.0)/np.abs(np.dot(GW, AS**2.0))))
+		return ERROR
+
 	def pconv(self, show):
 		"""
 		For convergence tests we only pass functional forms of BROW, BCOL 
@@ -357,24 +394,18 @@ class conv(object):
 		ERROR = np.zeros(np.size(self.nmodevec))
 
 		for index, nmodes in enumerate(self.nmodevec):
+
+			print "Computing for N = %r" %(nmodes)
 			computationaldomain = multipatch(npatches=1, nmodes=nmodes, \
 							leftboundary  = self.leftboundary,
 							rightboundary = self.rightboundary,
 							potential 	  = self.funcV)
 			domain = computationaldomain.globalsolve()
 
-			# project both the computed solution and the analytic solution to
-			# higher number of points (nmodes x 2)
 			PCS = domain[0,0].projectpatch(nmodes*2)
 			PAS = self.projectanalyticsolutiononpatch(self.analyticsol, nmodes*2)
-			if(0):
-				import matplotlib.pyplot as plt
-				plt.subplot(1,2,1)
-				plt.imshow(PCS.patchval)
-				plt.subplot(1,2,2)
-				plt.imshow(np.fliplr(np.flipud(PAS.patchval)))
-				plt.show()
 			ERROR[index] = self.computeLXerror(PCS, PAS, error = "L2")
+			print "   - L2 = %e"%ERROR[index]
 
 		print "   - Finished computing L2 norm. Saving results..."		
 
@@ -388,10 +419,4 @@ class conv(object):
 			plt.show()
 		print "Done."
 
-convergencetest = conv(nmodevec = np.arange(2,20,1), \
-						leftboundary  = lambda x: np.sin(4*np.pi*x), \
-						rightboundary = lambda y: np.sin(4*np.pi*y), \
-						potential 	  = None, \
-						analyticsol   = lambda x, y: np.sin(4*np.pi*x) + np.sin(4*np.pi*y))
 
-convergencetest.pconv(1)

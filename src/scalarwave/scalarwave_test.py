@@ -14,22 +14,34 @@
 from scalarwave_util import patch, spec, multipatch, conv
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy import integrate
-import scipy.integrate as integrate
 
 if(0):
 	"""
 	Test multipatch solution without futures
 	"""
-	computationaldomain = multipatch(npatches=1, nmodes=20, \
+	computationaldomain = multipatch(npatches=1, nmodes=50, \
 							leftboundary  = lambda x: np.exp(-x**2.0/0.1), \
-							rightboundary = lambda y: 0*y, \
+							rightboundary = lambda y: np.exp(-y**2.0/0.1), \
 							potential 	  = None)
 	domain 	 = computationaldomain.globalsolve()
 	solution = computationaldomain.assemblegrid(domain) 
-	plt.imshow(solution)
+	patch.plotpatch(solution)
+
+if(1):
+	"""
+	Test BCs
+	"""
+	computationaldomain = multipatch(npatches=1, nmodes=60, \
+							leftboundary  = lambda x: np.exp(-x**2.0/0.1), \
+							rightboundary = lambda y: np.exp(-y**2.0/0.1), \
+							potential 	  = None)
+	X, BC   	 = computationaldomain.testglobalsolve()
+	plt.plot(X, BC[:, 0], 'k.')
+	plt.plot(X, np.exp(-X**2.0/0.1), 'm--', linewidth=0.4)
+	plt.grid()
+	plt.xticks([])
 	plt.show()
+
 
 if(0):
 	convergencetest = conv(nmodevec = np.arange(3, 10, 2), \
@@ -41,7 +53,7 @@ if(0):
 
 if(0):	# test 1D functions
 	npoints = 20
-	nmodes  = 20
+	nmodes  = 50
 	f = lambda x: np.exp(-x**2.0/0.1)
 	
 	x  = spec.chebnodes(npoints)
@@ -53,7 +65,7 @@ if(0):	# test 1D functions
 	plt.plot(x, f(x), 'm--', linewidth=0.5)
 	plt.show()
 
-if(0):	# test 2D functions
+if(0):	# test 2D functions FIXME
 	npoints = 9
 	nmodes  = 9
 	f = lambda x, y: np.exp(-x**2.0/0.1) + np.exp(-y**2.0/0.1)
@@ -62,15 +74,15 @@ if(0):	# test 2D functions
 	s  = f(xx, yy)
 	v  = spec.projectfunction2D(f, nmodes, npoints)
 	
-if(1):
-	npoints = 30
+if(0):
+	npoints = 20
 	x  = spec.chebnodes(npoints)
 	w  = spec.chebweights(npoints)
 	s  = np.insert(np.cumsum(w) - 1, 0, -1)
 	xx, yy = np.meshgrid(spec.chebnodes(npoints), spec.chebnodes(npoints))
 	z = np.exp(-xx**2.0) + np.exp(-yy**2.0)
 	
-	# FIXME: We have issues if we have oscillating functions
+	# FIXME The normalization doens't work for every case
 	# z = np.sin(np.pi*xx) + np.sin(np.pi*yy)
 
 	from matplotlib import cm

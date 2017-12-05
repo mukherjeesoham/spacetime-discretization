@@ -118,31 +118,44 @@ class spec(object):
 		return VALS
 
 	#--------------------------------------------------------------------
-	# Function definitions for projecting in the 2D case
+	# Function definitions for projecting in the 1D case for arbitrary points
 	#--------------------------------------------------------------------
 
 	@staticmethod
-	def vandermonde2D(M, N):
-		pass
+	def vandermondeT(M, X):
+		T    = np.eye(100)
+		MX   = np.arange(0, M+1, 1)
+		VNDM = np.zeros((len(X), M+1))
+		for i, _x in enumerate(X):
+			for j, _m in enumerate(MX):
+				VNDM[i, j] = np.polynomial.chebyshev.chebval(_x, T[_m])
+		return VNDM
 
 	@staticmethod
-	def computevalues2D(COEFF, N):
-		pass
+	def computevaluesT(COEFF, X):
+		VNDM = spec.vandermondeT(len(COEFF)-1, X)
+		FN 	 = np.zeros(len(X))
+		for i, _x in enumerate(VNDM):
+			FN[i] = np.dot(_x, COEFF)
+		return FN
 
 	@staticmethod
-	def projectfunction2D(function, nmodes, npoints):
+	def projectfunctionT(function, nmodes, X):
 		"""
 		Returns M+1 length vector, since one has
 		to include T[0, x]
 		"""
 		M = nmodes
-		C = np.zeros((M+1, M+1))
+		C = np.zeros(M+1)
 		for m in range(M+1):
-			for n in range(M+1):
-				C[m, n] = integrate.nquad(lambda x, y: function(np.cos(x), np.cos(y))*np.cos(m*x)*np.cos(n*y), \
-					[[-1, 1],[-1, 1]])[0]
-		
-		return None
+			C[m] = integrate.quadrature(lambda x: function(np.cos(x))*np.cos(m*x), \
+				0, np.pi, tol=1.49e-15, rtol=1.49e-15, maxiter=500)[0]
+
+		MX      = np.diag(np.repeat(np.pi/2.0, M+1))
+		MX[0]   = MX[0]*2.0
+		COEFFS  = np.linalg.solve(MX, C)
+		VALS    = spec.computevaluesT(COEFFS, X)
+		return VALS
 
 	@staticmethod
 	def createfilter():
@@ -243,7 +256,8 @@ class patch(spec):
 	def extractpatchcoeffs(self):
 		CP = spec.vandermonde1D(self.N, self.N)
 		CM = np.kron(CP, CP)  
-		return np.reshape(np.linalg.solve(CM, np.ravel(self.patchval)), (self.N+1, self.N+1))
+		return np.reshape(np.linalg.solve(CM, np.ravel(self.patchval)), \
+			(self.N+1, self.N+1))
 
 	def computepatchvalues(self, coefficents):
 		CP = spec.vandermonde1D(self.N, self.N)
@@ -252,7 +266,8 @@ class patch(spec):
 		# return np.reshape(CM.dot(np.ravel(coefficents)), (self.N+1, self.N+1))
 
 	def projectpatch(self, NB): 
-		self.patchval =  self.computepatchvalues(np.pad(self.extractpatchcoeffs(self), (0, NB - self.N), 'constant'))
+		self.patchval =  self.computepatchvalues(np.pad(self.extractpatchcoeffs(self), \
+			(0, NB - self.N), 'constant'))
 		return self
 	
 	def restrictpatch(self, NB): 
@@ -264,19 +279,37 @@ class patch(spec):
 		self.patchval  =  self.computepatchvalues(RCM)
 		return self
 
-	def plotpatch(self):
+	@staticmethod
+	def plotpatch(solution):
+		N = int(np.sqrt(np.size(solution)) - 1)
+		w = spec.chebweights(N)
+ 		s = np.insert(np.cumsum(w) - 1, 0, -1)
+		xx, yy = np.meshgrid(spec.chebnodes(N), spec.chebnodes(N))
+
+		# FIXME: We are having normalization issues
+		# How to normalize the values of the patch to the colorbar?
+		znorm = solution/np.amax(solution)
+
 		import matplotlib.pyplot as plt
-		import scipy
-		from scipy import ndimage
-		with plt.rc_context({ "font.size": 20., "axes.titlesize": 20., "axes.labelsize": 20., \
-         "xtick.labelsize": 20., "ytick.labelsize": 20., "legend.fontsize": 20., \
-         "figure.figsize": (20, 12), \
-		 "figure.dpi": 300, "savefig.dpi": 300, "text.usetex": True}):
-			plt.imshow(np.flipud(self.patchval))
-			plt.colorbar()
-			plt.savefig("./output/patch-solution.pdf", bbox_inches='tight')
-			plt.axis('off')
-			plt.close()
+		from matplotlib import cm
+		import matplotlib.patches as patches
+		
+		colors = cm.viridis(znorm)
+		fig    = plt.figure()
+		ax     = fig.add_subplot(111, aspect='equal')
+		
+		ax.set_xlim([-1, 1])
+		ax.set_ylim([-1, 1])
+		
+		ax.plot(xx, yy, 'k.', markersize=0.5)
+		
+		for i in range(len(s)-1):
+			for j in range(len(s)-1):
+				ax.add_patch(patches.Rectangle((s[i], s[j]), s[i+1] - s[i], s[j+1] - s[j], \
+					fill=True, facecolor=colors[i,j]))
+				ax.add_patch(patches.Rectangle((s[i], s[j]), s[i+1] - s[i], s[j+1] - s[j], \
+					fill=False, linewidth=0.2))
+		plt.show()
 		return None
 
 
@@ -367,17 +400,17 @@ class multipatch(object):
 				if not self.M == 1:
 					print "Computing patch: ", index
 				XP, YP = self.gridtopatch(PATCH, index) 	
-						
+
 				if np.sum(index) == 0:	# initial patch		
-					bcol  = self.funcLB(YP)
-					brow  = self.funcRB(XP)
+					bcol  = spec.projectfunction1D(self.funcLB, 50, self.N)
+					brow  = spec.projectfunction1D(self.funcRB, 50, self.N)
 				elif (np.prod(index) == 0 and np.sum(index) != 0):	
 					if index[0] > index[1]:							
-						bcol  = self.funcLB(YP)
+						bcol  = spec.projectfunction1D(self.funcLB, 50, self.N)
 						brow  = patch.extractpatchBC(domain[index[0]-1, index[1]], 0)	
 					else:	
 						bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)												
-						brow  = self.funcRB(XP)
+						brow  = spec.projectfunction1D(self.funcRB, 50, self.N)
 				else:												
 					bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)
 					brow  = patch.extractpatchBC(domain[index[0]-1, index[1]], 0)
@@ -386,6 +419,55 @@ class multipatch(object):
 				domain[index[0], index[1]] = PATCH.solve(BC, OPERATOR)	# returns a patch object
 
 		return domain
+
+	def testglobalsolve(self):
+			domain = np.zeros((self.M, self.M), dtype=object)
+			grid   = self.makeglobalgrid(self.M)	
+			PATCH  = patch(self.N)
+			X = []
+			for i in range(int(np.max(grid))+1):
+				slice = np.transpose(np.where(grid==i))
+				for index in slice:
+					PATCH.loc = index
+					if not self.M == 1:
+						print "Computing patch: ", index
+					XP, YP = self.gridtopatch(PATCH, index) 	
+					X.append(XP)
+
+					if np.sum(index) == 0:	# initial patch		
+						bcol  = spec.projectfunctionT(self.funcLB, 50, XP)
+						brow  = spec.projectfunctionT(self.funcRB, 50, YP)
+					elif (np.prod(index) == 0 and np.sum(index) != 0):	
+						if index[0] > index[1]:							
+							bcol  = spec.projectfunctionT(self.funcLB, 50, XP)
+							brow  = np.zeros(len(YP))	
+						else:			
+							bcol  = np.zeros(len(XP))													
+							brow  = spec.projectfunctionT(self.funcRB, 50, YP)
+					else:												
+						bcol  = np.zeros(len(YP))	
+						brow  = np.zeros(len(YP))	
+
+					BC = patch.setBCs(PATCH, BROW = brow, BCOL = bcol, PV = self.computelocalV(XP, YP))
+					domain[index[0], index[1]] = BC
+
+			I = []
+			M = self.M
+			N = self.N
+			domain[M-1, M-1]
+			for i in range(M):
+				J = []
+				for j in range(M):  
+			  		J.append(domain[i,j])
+				I.append(J)
+	  
+			blocks 	= np.block(I)
+			columns = np.linspace(0, M*(N+1), M+1)[1:-1]
+			blocks 	= np.delete(blocks, columns, 0) 
+			blocks 	= np.delete(blocks, columns, 1) 
+			X = np.delete(np.ravel(np.array(X[0:2])), columns)
+			return X, blocks
+
 
 
 #========================================================================
@@ -399,7 +481,8 @@ class conv(object):
 	convergence.
 	"""
 
-	def __init__(self, nmodevec, rightboundary, leftboundary, potential = None, analyticsol = None):
+	def __init__(self, nmodevec, rightboundary, leftboundary, \
+		potential = None, analyticsol = None):
 		self.nmodevec	   = nmodevec
 		self.rightboundary = rightboundary
 		self.leftboundary  = leftboundary

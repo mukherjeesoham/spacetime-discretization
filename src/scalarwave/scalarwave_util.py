@@ -279,6 +279,10 @@ class patch(spec):
 			plt.close()
 		return None
 
+
+#========================================================================
+# Class containing methods to handle and sync multiple patches
+#========================================================================
 class multipatch(object):
 	"""
 	The main function, which after futurization,
@@ -384,6 +388,9 @@ class multipatch(object):
 		return domain
 
 
+#========================================================================
+# Class containing methods to test convergence
+#========================================================================
 class conv(object):
 	"""
 	The class contains all the tools to test convergence 

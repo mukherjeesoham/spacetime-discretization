@@ -62,3 +62,28 @@ if(0):	# test 2D functions
 	s  = f(xx, yy)
 	v  = spec.projectfunction2D(f, nmodes, npoints)
 	
+if(1):
+	npoints = 30
+	x  = spec.chebnodes(npoints)
+	w  = spec.chebweights(npoints)
+	s  = np.insert(np.cumsum(w) - 1, 0, -1)
+	xx, yy = np.meshgrid(spec.chebnodes(npoints), spec.chebnodes(npoints))
+	z = np.exp(-xx**2.0) + np.exp(-yy**2.0)
+	
+	# FIXME: We have issues if we have oscillating functions
+	# z = np.sin(np.pi*xx) + np.sin(np.pi*yy)
+
+	from matplotlib import cm
+	import matplotlib.patches as patches
+	znorm = z/np.amax(z)
+	colors = cm.viridis(znorm)
+	fig = plt.figure()
+	ax  = fig.add_subplot(111, aspect='equal')
+	ax.set_xlim([-1, 1])
+	ax.set_ylim([-1, 1])
+	ax.plot(xx, yy, 'k.', markersize=2)
+	for i in range(len(s)-1):
+		for j in range(len(s)-1):
+			ax.add_patch(patches.Rectangle((s[i], s[j]), s[i+1] - s[i], s[j+1] - s[j], fill=True, facecolor=colors[i,j]))
+			ax.add_patch(patches.Rectangle((s[i], s[j]), s[i+1] - s[i], s[j+1] - s[j], fill=False, linewidth=0.2))
+	plt.show()

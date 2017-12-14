@@ -94,7 +94,7 @@ class multipatch(object):
 				# Call solver: returns a patch object
 				domain[index[0], index[1]] = PATCH.solve(BC, OPERATOR).patchval					
 
-				# Plot the patch
+				# Plot the patch # issues with plotting the patch
 				patch.plotpatch(domain[index[0], index[1]], CX, CY, XP, YP)
 
 		return domain

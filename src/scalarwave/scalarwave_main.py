@@ -18,9 +18,12 @@ import numpy as np
 	> Implement polar coordinates
 """
 
+# define a computational domain
 computationaldomain = multipatch(npatches=2, nmodes=2, \
 						leftboundary  = lambda x: np.exp(-x**2.0/0.1), \
 						rightboundary = lambda y: np.exp(-y**2.0/0.1), \
 						potential 	  = None)
+
+# call the solver
 domain = computationaldomain.globalsolve()
 

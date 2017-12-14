@@ -77,52 +77,11 @@ class spec(object):
 		return W
 
 	#--------------------------------------------------------------------
-	# Function definitions for projecting in the 1D case
+	# Function definitions for projecting 1D function on arbitrary points
 	#--------------------------------------------------------------------
 
 	@staticmethod
-	def vandermonde1D(M, N):
-		T    = np.eye(100)
-		X    = spec.chebnodes(N)
-		MX   = np.arange(0, M+1, 1)
-		VNDM = np.zeros((N+1, M+1))
-		for i, _x in enumerate(X):
-			for j, _m in enumerate(MX):
-				VNDM[i, j] = np.polynomial.chebyshev.chebval(_x, T[_m])
-		return VNDM
-
-	@staticmethod
-	def computevalues1D(COEFF, N):
-		VNDM = spec.vandermonde1D(len(COEFF)-1, N)
-		FN 	 = np.zeros(N+1)
-		for i, _x in enumerate(VNDM):
-			FN[i] = np.dot(_x, COEFF)
-		return FN
-
-	@staticmethod
-	def projectfunction1D(function, nmodes, npoints):
-		"""
-		Returns M+1 length vector, since one has
-		to include T[0, x]
-		"""
-		M = nmodes
-		C = np.zeros(M+1)
-		for m in range(M+1):
-			C[m] = integrate.quadrature(lambda x: function(np.cos(x))*np.cos(m*x), \
-				0, np.pi, tol=1.49e-15, rtol=1.49e-15, maxiter=500)[0]
-
-		MX      = np.diag(np.repeat(np.pi/2.0, M+1))
-		MX[0]   = MX[0]*2.0
-		COEFFS  = np.linalg.solve(MX, C)
-		VALS    = spec.computevalues1D(COEFFS, npoints)
-		return VALS
-
-	#--------------------------------------------------------------------
-	# Function definitions for projecting in the 1D case for arbitrary points
-	#--------------------------------------------------------------------
-
-	@staticmethod
-	def vandermondeT(M, X):
+	def vandermonde1D(M, X):
 		T    = np.eye(100)
 		MX   = np.arange(0, M+1, 1)
 		VNDM = np.zeros((len(X), M+1))
@@ -132,29 +91,72 @@ class spec(object):
 		return VNDM
 
 	@staticmethod
-	def computevaluesT(COEFF, X):
-		VNDM = spec.vandermondeT(len(COEFF)-1, X)
+	def computevalues1D(COEFF, X):
+		VNDM = spec.vandermonde1D(len(COEFF)-1, X)
 		FN 	 = np.zeros(len(X))
 		for i, _x in enumerate(VNDM):
 			FN[i] = np.dot(_x, COEFF)
 		return FN
 
 	@staticmethod
-	def projectfunctionT(function, nmodes, X):
+	def projectfunction1D(function, nmodes, X):
 		"""
 		Returns M+1 length vector, since one has
 		to include T[0, x]
 		"""
 		M = nmodes
-		C = np.zeros(M+1)
+		IP = np.zeros(M+1)
 		for m in range(M+1):
-			C[m] = integrate.quadrature(lambda x: function(np.cos(x))*np.cos(m*x), \
+			IP[m] = integrate.quadrature(lambda x: function(np.cos(x))*np.cos(m*x), \
 				0, np.pi, tol=1.49e-15, rtol=1.49e-15, maxiter=500)[0]
 
 		MX      = np.diag(np.repeat(np.pi/2.0, M+1))
 		MX[0]   = MX[0]*2.0
-		COEFFS  = np.linalg.solve(MX, C)
-		VALS    = spec.computevaluesT(COEFFS, X)
+		COEFFS  = np.linalg.solve(MX, IP)
+		VALS    = spec.computevalues1D(COEFFS, X)
+		return VALS
+
+	#--------------------------------------------------------------------
+	# Function definitions for projecting 2D function on arbitrary points
+	#--------------------------------------------------------------------
+
+	@staticmethod
+	def vandermonde2D(M, X):
+		T    = np.eye(100)
+		MX   = np.arange(0, M+1, 1)
+		VNDM = np.zeros((len(X), M+1))
+		for i, _x in enumerate(X):
+			for j, _m in enumerate(MX):
+				VNDM[i, j] = np.polynomial.chebyshev.chebval(_x, T[_m])
+		VNDM2D = np.kron(VNDM, VNDM)
+		return VNDM2D
+
+	@staticmethod
+	def computevalues2D(COEFF, X):
+		VNDM = spec.vandermonde2D(len(COEFF)-1, X)
+		FN 	 = np.zeros(len(X))
+		for i, _x in enumerate(VNDM):
+			FN[i] = np.dot(_x, COEFF)
+		return FN
+
+	@staticmethod
+	def projectfunction2D(function, nmodes, X):
+		# first construct MX; i.e. the RHS of the expression
+		M     = nmodes
+		MX    = np.diag(np.repeat(np.pi/2.0, M+1))
+		MX[0] = MX[0]*2.0
+		M2DX  = np.kron(MX, MX)
+		IP    = np.zeros((M+1, M+1))
+		
+		for m in range(M+1):
+			for n in range(M+1):
+				IP[m, n] = integrate.nquad(lambda x, y: function(np.cos(x), np.cos(y))*np.cos(m*x)*np.cos(n*y), \
+					[[-1, 1],[-1, 1]])[0]
+
+		# XXX: Note this is where things may go wrong in the future, due to ravelling.
+		COEFFS  = np.linalg.solve(M2DX, np.ravel(IP)) 
+		print np.shape(COEFFS)
+		VALS    = spec.computevalues2D(COEFFS, X)
 		return VALS
 
 	@staticmethod
@@ -217,14 +219,16 @@ class patch(spec):
 		return uu, vv
 
 	@staticmethod
-	def extractpatchBC(PATCH, column):		
+	def extractpatchBC(PATCHVAL, column):		
 		"""
 		Returns Boundary of a patch
 		"""
-		if column == 1:						
-			return PATCH.patchval[:,  -1]
+		if column == 1:		
+			# print "Extracting final column from patch \n", PATCH.patchval				
+			return PATCHVAL[:,  -1]
 		else:
-			return PATCH.patchval[-1,  :]	
+			# print "Extracting final row from patch \n", PATCH.patchval	
+			return PATCHVAL[-1,  :]	
 
 	def setBCs(self, BROW, BCOL, PV = None):	
 		"""
@@ -280,7 +284,7 @@ class patch(spec):
 		return self
 
 	@staticmethod
-	def plotpatch(solution):
+	def plotpatchcopy(solution):
 		N = int(np.sqrt(np.size(solution)) - 1)
 		w = spec.chebweights(N)
  		s = np.insert(np.cumsum(w) - 1, 0, -1)
@@ -312,6 +316,32 @@ class patch(spec):
 		plt.show()
 		return None
 
+	@staticmethod
+	def plotpatch(solution, CX, CY, XP, YP):
+		xx, yy = np.meshgrid(XP, YP)
+
+		znorm = solution/np.amax(solution)
+
+		import matplotlib.pyplot as plt
+		from matplotlib import cm
+		import matplotlib.patches as patches
+		
+		colors = cm.viridis(znorm)
+		fig    = plt.figure()
+		ax     = fig.add_subplot(111, aspect='equal')
+		
+		ax.set_xlim([-1, 1])
+		ax.set_ylim([-1, 1])	
+		ax.plot(xx, yy, 'k.', markersize=3.5)
+		
+		for i in range(len(CX)-1):
+			for j in range(len(CY)-1):
+				ax.add_patch(patches.Rectangle((CX[i], CY[j]), CX[i+1] - CX[i], CY[j+1] - CY[j], \
+					fill=True, facecolor=colors[j,i]))
+				ax.add_patch(patches.Rectangle((CX[i], CY[j]), CX[i+1] - CX[i], CY[j+1] - CY[j], \
+					fill=False, linewidth=0.2))
+		plt.show()
+		return None
 
 #========================================================================
 # Class containing methods to handle and sync multiple patches
@@ -325,8 +355,8 @@ class multipatch(object):
 	def __init__(self, npatches, nmodes, leftboundary, rightboundary, potential):
 		self.M      = npatches
 		self.N 		= nmodes
-		self.funcLB = leftboundary
-		self.funcRB = rightboundary
+		self.funCOL = leftboundary
+		self.funROW = rightboundary
 		self.funcV  = potential
 
 	@staticmethod
@@ -352,7 +382,7 @@ class multipatch(object):
 		for i in range(M):
 			J = []
 			for j in range(M):  
-		  		J.append(domain[i,j].patchval)
+		  		J.append(domain[i,j])
 			I.append(J)
   
 		blocks 	= np.block(I)
@@ -370,12 +400,21 @@ class multipatch(object):
 
 	def gridtopatch(self, PATCH, index):
 		M = self.M
+		N = self.N
 		S = self.shifts(M)
 		X = spec.chebnodes(PATCH.N)
 		Y = spec.chebnodes(PATCH.N)
+		
+		WS = spec.chebweights(N)
+ 		CC = np.insert(np.cumsum(WS) - 1, 0, -1)
+
 		self.PX = np.sort((X + S[index[0], index[1]][0])/M)
 		self.PY = np.sort(-(Y + S[index[0], index[1]][1])/M)
-		return self.PX, self.PY
+
+		CX = np.sort((CC + S[index[0], index[1]][0])/M)
+		CY = np.sort(-(CC + S[index[0], index[1]][1])/M)
+
+		return CX, CY, self.PX, self.PY
 
 	@staticmethod
 	def patchjacobian(M):
@@ -386,11 +425,9 @@ class multipatch(object):
 		pass
 
 	def globalsolve(self):
-		domain = np.zeros((self.M, self.M), dtype=object)
-		grid   = self.makeglobalgrid(self.M)	
-		PATCH  = patch(self.N)
-
-		# Compute the Jacobian and correct for the operator
+		domain   = np.zeros((self.M, self.M), dtype=object)
+		grid     = self.makeglobalgrid(self.M)	
+		PATCH    = patch(self.N)
 		OPERATOR = patch.operator(PATCH)
 
 		for i in range(int(np.max(grid))+1):
@@ -399,75 +436,27 @@ class multipatch(object):
 				PATCH.loc = index
 				if not self.M == 1:
 					print "Computing patch: ", index
-				XP, YP = self.gridtopatch(PATCH, index) 	
-
-				if np.sum(index) == 0:	# initial patch		
-					bcol  = spec.projectfunction1D(self.funcLB, 50, self.N)
-					brow  = spec.projectfunction1D(self.funcRB, 50, self.N)
+				CX, CY, XP, YP = self.gridtopatch(PATCH, index) 	
+				# print "XP: ", XP
+				# print "YP: ", YP				
+				if np.sum(index) == 0:		
+					bcol  = spec.projectfunction1D(self.funCOL, 50, YP)
+					brow  = spec.projectfunction1D(self.funROW, 50, XP)
 				elif (np.prod(index) == 0 and np.sum(index) != 0):	
-					if index[0] > index[1]:							
-						bcol  = spec.projectfunction1D(self.funcLB, 50, self.N)
-						brow  = patch.extractpatchBC(domain[index[0]-1, index[1]], 0)	
-					else:	
-						bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)												
-						brow  = spec.projectfunction1D(self.funcRB, 50, self.N)
+					if index[1] > index[0]:							
+						brow  = spec.projectfunction1D(self.funROW, 50, XP)
+						bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)
+					else:
+						brow = patch.extractpatchBC(domain[index[0]-1,  index[1]], 0)
+						bcol = spec.projectfunction1D(self.funCOL, 50, YP)
 				else:												
 					bcol  = patch.extractpatchBC(domain[index[0], index[1]-1], 1)
-					brow  = patch.extractpatchBC(domain[index[0]-1, index[1]], 0)
+					brow  = patch.extractpatchBC(domain[index[0]-1,  index[1]], 0)	
 
 				BC = patch.setBCs(PATCH, BROW = brow, BCOL = bcol, PV = self.computelocalV(XP, YP))
-				domain[index[0], index[1]] = PATCH.solve(BC, OPERATOR)	# returns a patch object
-
+				domain[index[0], index[1]] = PATCH.solve(BC, OPERATOR).patchval	# returns a patch object
+				patch.plotpatch(domain[index[0], index[1]], CX, CY, XP, YP)
 		return domain
-
-	def testglobalsolve(self):
-			domain = np.zeros((self.M, self.M), dtype=object)
-			grid   = self.makeglobalgrid(self.M)	
-			PATCH  = patch(self.N)
-			X = []
-			for i in range(int(np.max(grid))+1):
-				slice = np.transpose(np.where(grid==i))
-				for index in slice:
-					PATCH.loc = index
-					if not self.M == 1:
-						print "Computing patch: ", index
-					XP, YP = self.gridtopatch(PATCH, index) 	
-					X.append(XP)
-
-					if np.sum(index) == 0:	# initial patch		
-						bcol  = spec.projectfunctionT(self.funcLB, 50, XP)
-						brow  = spec.projectfunctionT(self.funcRB, 50, YP)
-					elif (np.prod(index) == 0 and np.sum(index) != 0):	
-						if index[0] > index[1]:							
-							bcol  = spec.projectfunctionT(self.funcLB, 50, XP)
-							brow  = np.zeros(len(YP))	
-						else:			
-							bcol  = np.zeros(len(XP))													
-							brow  = spec.projectfunctionT(self.funcRB, 50, YP)
-					else:												
-						bcol  = np.zeros(len(YP))	
-						brow  = np.zeros(len(YP))	
-
-					BC = patch.setBCs(PATCH, BROW = brow, BCOL = bcol, PV = self.computelocalV(XP, YP))
-					domain[index[0], index[1]] = BC
-
-			I = []
-			M = self.M
-			N = self.N
-			domain[M-1, M-1]
-			for i in range(M):
-				J = []
-				for j in range(M):  
-			  		J.append(domain[i,j])
-				I.append(J)
-	  
-			blocks 	= np.block(I)
-			columns = np.linspace(0, M*(N+1), M+1)[1:-1]
-			blocks 	= np.delete(blocks, columns, 0) 
-			blocks 	= np.delete(blocks, columns, 1) 
-			X = np.delete(np.ravel(np.array(X[0:2])), columns)
-			return X, blocks
-
 
 
 #========================================================================

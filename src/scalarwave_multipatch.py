@@ -36,13 +36,6 @@ class multipatch(object):
 				L[k, l] =  np.array([i, -j])
 		return L.T
 
-	def computelocalV(self, XP, YP):
-		XX, YY = np.meshgrid(XP, YP)
-		if self.funcV == None:
-			return (XX + YY)*0
-		else:
-			return self.funcV(XX, YY)
-
 	def gridtopatch(self, PATCH, index):
 		"""
 		Gives the integration weights and the 
@@ -64,7 +57,17 @@ class multipatch(object):
 		grid     = self.makeglobalgrid(self.M)	
 		PATCH    = patch(self.N)
 		OPERATOR = patch.operator(PATCH)
+		RANGE    = []
 
+		import matplotlib.pyplot as plt
+		from matplotlib import cm
+		import matplotlib.patches as patches
+
+		fig    = plt.figure()
+		ax     = fig.add_subplot(111, aspect='equal')
+		ax.set_xlim([-1, 1])
+		ax.set_ylim([-1, 1])	
+		
 		for i in range(int(np.max(grid))+1):
 			slice = np.transpose(np.where(grid==i))
 			for index in slice:
@@ -76,25 +79,33 @@ class multipatch(object):
 				if np.sum(index) == 0:	
 					BC = patch.setBCs(PATCH, BROW = spec.projectfunction1D(self.funROW, 50, XP), \
 											 BCOL = spec.projectfunction1D(self.funCOL, 50, YP), \
-											 PV = self.computelocalV(XP, YP))	
+											 PV   = patch.computelocalV(self.funcV, XP, YP))	
 				elif (np.prod(index) == 0 and np.sum(index) != 0):	
 					if index[1] > index[0]:	
 						BC = patch.setBCs(PATCH, BROW = spec.projectfunction1D(self.funROW, 50, XP), \
-							 					 BCOL = patch.extractpatchBC(domain[index[0], index[1]-1], index), \
-							 					 PV = self.computelocalV(XP, YP))						
+							 					 BCOL = patch.extractpatchBC(domain[index[0], index[1]-1], 1), \
+							 					 PV   = patch.computelocalV(self.funcV, XP, YP))		
 					else:
-						BC = patch.setBCs(PATCH, BROW = patch.extractpatchBC(domain[index[0]-1,  index[1]], index), \
+						BC = patch.setBCs(PATCH, BROW = patch.extractpatchBC(domain[index[0]-1,  index[1]], 0), \
 				 					 			 BCOL = spec.projectfunction1D(self.funCOL, 50, YP), \
-							 					 PV = self.computelocalV(XP, YP))	
+							 					 PV   = patch.computelocalV(self.funcV, XP, YP))
 				else:		
-					BC = patch.setBCs(PATCH, BROW = patch.extractpatchBC(domain[index[0]-1,  index[1]], index), \
-			 			 					 BCOL = patch.extractpatchBC(domain[index[0], index[1]-1], index), \
- 					 						 PV = self.computelocalV(XP, YP))									
+					BC = patch.setBCs(PATCH, BROW = patch.extractpatchBC(domain[index[0]-1,  index[1]], 0), \
+			 			 					 BCOL = patch.extractpatchBC(domain[index[0], index[1]-1], 1), \
+ 					 						 PV   = patch.computelocalV(self.funcV, XP, YP))								
 				
 				# Call solver: returns a patch object
-				domain[index[0], index[1]] = PATCH.solve(BC, OPERATOR).patchval					
+				domain[index[0], index[1]] = patch.solve(PATCH, BC, OPERATOR).patchval					
+				RANGE.append(np.ravel(domain[index[0], index[1]]))
 
-				# Plot the patch # issues with plotting the patch
-				patch.plotpatch(domain[index[0], index[1]], CX, CY, XP, YP)
+		#FIXME: Temporary hack to plot the domain
+		for i in range(int(np.max(grid))+1):
+			PATCH    = patch(self.N)
+			slice = np.transpose(np.where(grid==i))
+			for index in slice:
+				CX, CY, XP, YP = self.gridtopatch(PATCH, index) 	
+				patch.plotpatch(ax, domain[index[0], index[1]], CX, CY, XP, YP, RANGE)
+
+		plt.show()
 
 		return domain

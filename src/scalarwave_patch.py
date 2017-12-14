@@ -50,8 +50,8 @@ class patch(spec):
 		return eigenvalues
   
 	@staticmethod
-	def extractpatchBC(PATCHVAL, index):		
-		if index[0] > index[1]:			
+	def extractpatchBC(PATCHVAL, column):		
+		if column == 1:			
 			return PATCHVAL[:,  -1]
 		else:	
 			return PATCHVAL[-1,  :]	
@@ -77,6 +77,14 @@ class patch(spec):
 
 		self.bcmatrix = PBC
 		return self.bcmatrix
+
+	@staticmethod
+	def computelocalV(funcV, XP, YP):
+		XX, YY = np.meshgrid(XP, YP)
+		if funcV == None:
+			return (XX + YY)*0
+		else:
+			return funcV(XX, YY)
 
 	def solve(self, boundaryconditions, operator):	
 		self.patchval = np.reshape(np.linalg.solve(operator, \
@@ -111,28 +119,27 @@ class patch(spec):
 		return self
 
 	@staticmethod
-	def plotpatch(solution, CX, CY, XP, YP):
-		xx, yy = np.meshgrid(XP, YP)
-
-		znorm = solution/np.amax(solution)
+	def plotpatch(ax, solution, CX, CY, XP, YP, RANGE):
 
 		import matplotlib.pyplot as plt
 		from matplotlib import cm
 		import matplotlib.patches as patches
-		
-		colors = cm.viridis(znorm)
-		fig    = plt.figure()
-		ax     = fig.add_subplot(111, aspect='equal')
-		
-		ax.set_xlim([-1, 1])
-		ax.set_ylim([-1, 1])	
-		ax.plot(xx, yy, 'k.', markersize=3.5)
-		
+		import matplotlib
+
+		# xx, yy = np.meshgrid(XP, YP)
+		# ax.plot(xx, yy, 'k.', markersize=0.5)
+
+		minima = np.amin(RANGE)
+		maxima = np.amax(RANGE)
+		norm = matplotlib.colors.Normalize(vmin=minima, vmax=maxima, clip=True)
+		mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)	
+
+
 		for i in range(len(CX)-1):
 			for j in range(len(CY)-1):
 				ax.add_patch(patches.Rectangle((CX[i], CY[j]), CX[i+1] - CX[i], CY[j+1] - CY[j], \
-					fill=True, facecolor=colors[j,i]))
-				ax.add_patch(patches.Rectangle((CX[i], CY[j]), CX[i+1] - CX[i], CY[j+1] - CY[j], \
+					fill=True, facecolor=mapper.to_rgba(solution[j,i])))	# HACK with the indices
+				if (0):
+					ax.add_patch(patches.Rectangle((CX[i], CY[j]), CX[i+1] - CX[i], CY[j+1] - CY[j], \
 					fill=False, linewidth=0.2))
-		plt.show()
-		return None
+		return ax

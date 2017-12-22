@@ -17,15 +17,19 @@ import numpy as np
 """
 
 # define a computational domain
-computationaldomain = multipatch(npatches=10, nmodes=20, \
-						leftboundary  = lambda x: np.exp(-x**2.0/0.1), \
-						rightboundary = lambda y: np.exp(-y**2.0/0.1), \
-						potential 	  = None)
 if(0):
-    computationaldomain = multipatch(npatches=8, nmodes=10, \
-    					leftboundary  = lambda x: np.sin(0*x), \
- 	    				rightboundary = lambda y: np.sin(0*y), \
- 		    			potential 	  = lambda x, y: np.sin(x+y)*np.exp((-x**2.0)/0.1)*np.exp((-y**2.0)/(0.1)) )
+	computationaldomain = multipatch(npatches=1, nmodes=20, \
+						leftboundary   = lambda x: np.exp(-x**2.0/0.1), \
+						rightboundary  = lambda y: np.exp(-y**2.0/0.1), \
+						potential 	   = None,
+						nboundarymodes = 10,
+						savefigure     = 1)
+else:
+    computationaldomain = multipatch(npatches=2, nmodes=40, \
+    					leftboundary  = lambda x: np.sin(np.pi*x), \
+ 	    				rightboundary = lambda y: np.sin(np.pi*y), \
+ 		    			potential 	  = None, #lambda x, y: np.sin(x+y)*np.exp((-x**2.0)/0.1)*np.exp((-y**2.0)/(0.1)),
+ 		    			savefigure    = 1)
 
 # call the solver
 domain = computationaldomain.globalsolve()

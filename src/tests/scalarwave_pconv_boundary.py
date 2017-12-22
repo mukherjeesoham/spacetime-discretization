@@ -11,16 +11,20 @@ def computeL2forpatch(NM):
 	# Starting to compute solution
 	#--------------------------------------------------------------
 	if(1):
-		computationaldomain = multipatch(npatches=1, nmodes=NM, \
-								leftboundary  = lambda x: np.exp(-(x**2.0)/0.1), \
-								rightboundary = lambda y: np.exp(-(y**2.0)/0.1), \
-								potential 	  = None)
+		# Two gaussians advecting
+		computationaldomain = multipatch(npatches=1, nmodes=20, \
+								leftboundary   = lambda x: np.exp(-(x**2.0)/0.1), \
+								rightboundary  = lambda y: np.exp(-(y**2.0)/0.1), \
+								potential 	   = None,
+								nboundarymodes = NM)
 		AF	 = lambda x, y: np.exp(-(x**2.0)/0.1) + np.exp(-(y**2.0)/0.1)
 	else:
+		# Two sine waves advecting
 		computationaldomain = multipatch(npatches=1, nmodes=NM, \
-								leftboundary  = lambda x: np.sin(np.pi*x), \
-								rightboundary = lambda y: np.sin(np.pi*y), \
-								potential 	  = None)
+								leftboundary   = lambda x: np.sin(np.pi*x), \
+								rightboundary  = lambda y: np.sin(np.pi*y), \
+								potential 	   = None,
+								nboundarymodes = NM)
 		AF	 = lambda x, y: -np.sin(np.pi*x) + -np.sin(np.pi*y)
 
 	#--------------------------------------------------------------
@@ -118,7 +122,6 @@ def computeL2forpatch(NM):
 		ax.plot_wireframe(XX, YY, ASOL, color='g', linewidth=0.8)		
 		plt.show()	
 	return L2
-
 
 if(0):
 	print "- L2 error norm: %r"%computeL2forpatch(15)

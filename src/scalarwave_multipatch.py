@@ -16,13 +16,15 @@ class multipatch(object):
 	takes the size and number of patches, the boundary conditions/the potential
 	and computes, and then assembles the entire solution
 	"""
-	def __init__(self, npatches, nmodes, leftboundary, rightboundary, potential, savefigure=0):
+	def __init__(self, npatches, nmodes, leftboundary, rightboundary, \
+						potential, nboundarymodes=50, savefigure=0):
 		self.M      = npatches
 		self.N 		= nmodes
 		self.funCOL = leftboundary
 		self.funROW = rightboundary
 		self.funcV  = potential
 		self.savefigure = savefigure
+		self.nboundarymodes = nboundarymodes
 
 	@staticmethod
 	def makeglobalgrid(M):
@@ -80,17 +82,17 @@ class multipatch(object):
 				CX, CY, XP, YP = self.gridtopatch(PATCH, index) 	
 
 				if np.sum(index) == 0:	
-					BC = patch.setBCs(PATCH, BROW = spec.projectfunction1D(self.funROW, 50, XP), \
-											 BCOL = spec.projectfunction1D(self.funCOL, 50, YP), \
+					BC = patch.setBCs(PATCH, BROW = spec.projectfunction1D(self.funROW, self.nboundarymodes, XP), \
+											 BCOL = spec.projectfunction1D(self.funCOL, self.nboundarymodes, YP), \
 											 PV   = patch.computelocalV(self.funcV, XP, YP))	
 				elif (np.prod(index) == 0 and np.sum(index) != 0):	
 					if index[1] > index[0]:	
-						BC = patch.setBCs(PATCH, BROW = spec.projectfunction1D(self.funROW, 50, XP), \
+						BC = patch.setBCs(PATCH, BROW = spec.projectfunction1D(self.funROW, self.nboundarymodes, XP), \
 							 					 BCOL = patch.extractpatchBC(domain[index[0], index[1]-1], 1), \
 							 					 PV   = patch.computelocalV(self.funcV, XP, YP))		
 					else:
 						BC = patch.setBCs(PATCH, BROW = patch.extractpatchBC(domain[index[0]-1,  index[1]], 0), \
-				 					 			 BCOL = spec.projectfunction1D(self.funCOL, 50, YP), \
+				 					 			 BCOL = spec.projectfunction1D(self.funCOL, self.nboundarymodes, YP), \
 							 					 PV   = patch.computelocalV(self.funcV, XP, YP))
 				else:		
 					BC = patch.setBCs(PATCH, BROW = patch.extractpatchBC(domain[index[0]-1,  index[1]], 0), \
@@ -113,4 +115,5 @@ class multipatch(object):
 			if not os.path.exists("./output"):
 			        os.makedirs("./output")
 			plt.savefig("./output/%s-grid.png"%strftime("%Y-%m-%d %H:%M:%S", localtime()))
+			plt.close()
 		return domain

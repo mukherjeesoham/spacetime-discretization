@@ -16,12 +16,13 @@ class multipatch(object):
 	takes the size and number of patches, the boundary conditions/the potential
 	and computes, and then assembles the entire solution
 	"""
-	def __init__(self, npatches, nmodes, leftboundary, rightboundary, potential):
+	def __init__(self, npatches, nmodes, leftboundary, rightboundary, potential, savefigure=0):
 		self.M      = npatches
 		self.N 		= nmodes
 		self.funCOL = leftboundary
 		self.funROW = rightboundary
 		self.funcV  = potential
+		self.savefigure = savefigure
 
 	@staticmethod
 	def makeglobalgrid(M):
@@ -100,15 +101,16 @@ class multipatch(object):
 				domain[index[0], index[1]] = patch.solve(PATCH, BC, OPERATOR).patchval					
 				RANGE.append(np.ravel(domain[index[0], index[1]]))
 
-		#FIXME: Temporary hack to plot the domain
-		for i in range(int(np.max(grid))+1):
-			PATCH    = patch(self.N)
-			slice = np.transpose(np.where(grid==i))
-			for index in slice:
-				CX, CY, XP, YP = self.gridtopatch(PATCH, index) 	
-				patch.plotpatch(ax, domain[index[0], index[1]], CX, CY, XP, YP, RANGE)
+		if self.savefigure != 0:
+			#FIXME: Temporary hack to plot the domain
+			for i in range(int(np.max(grid))+1):
+				PATCH    = patch(self.N)
+				slice = np.transpose(np.where(grid==i))
+				for index in slice:
+					CX, CY, XP, YP = self.gridtopatch(PATCH, index) 	
+					patch.plotpatch(ax, domain[index[0], index[1]], CX, CY, XP, YP, RANGE)
 
-		if not os.path.exists("./output"):
-		        os.makedirs("./output")
-		plt.savefig("./output/%s-grid.png"%strftime("%Y-%m-%d %H:%M:%S", localtime()))
+			if not os.path.exists("./output"):
+			        os.makedirs("./output")
+			plt.savefig("./output/%s-grid.png"%strftime("%Y-%m-%d %H:%M:%S", localtime()))
 		return domain

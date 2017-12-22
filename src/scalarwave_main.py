@@ -29,4 +29,3 @@ if(0):
 
 # call the solver
 domain = computationaldomain.globalsolve()
-

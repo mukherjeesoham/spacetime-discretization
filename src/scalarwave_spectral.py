@@ -105,13 +105,12 @@ class spec(object):
 		MX    = np.diag(np.repeat(np.pi/2.0, M+1))
 		MX[0] = MX[0]*2.0
 		M2DX  = np.kron(MX, MX)
-
-		IP    = np.zeros((M+1, M+1))	# computation checks out
+		IP    = np.zeros((M+1, M+1))
 		for m in range(M+1):
 			for n in range(M+1):
 				IP[m, n] = integrate.nquad(lambda x, y: function(np.cos(x), np.cos(y))*np.cos(m*x)*np.cos(n*y), \
 					[[0, np.pi],[0, np.pi]])[0]
-
+				
 		# FIXME: Perhaps we are doing this wrong
 		COEFFS  = np.linalg.solve(M2DX, np.ravel(IP)) 
 		VALS    = spec.computevalues2D(COEFFS, X)
@@ -120,10 +119,9 @@ class spec(object):
 	@staticmethod
 	def computevalues2D(COEFF, X):
 		VNDM   = spec.vandermonde(len(X)-1, X)
-		VNDM2D = np.kron(VNDM, VNDM)	# computation checks out
-
+		VNDM2D = np.kron(VNDM, VNDM)
 		FN 	   = np.zeros(len(X)**2)
 		for i, _x in enumerate(VNDM2D):
-			FN[i] = np.dot(_x, np.ravel(COEFF))	# works for 1D
+			FN[i] = np.dot(_x, np.ravel(COEFF))
 		return np.reshape(FN, (len(X), len(X)))
 

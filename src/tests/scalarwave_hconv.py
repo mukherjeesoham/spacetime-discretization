@@ -6,7 +6,7 @@ from scalarwave_multipatch import multipatch
 from scalarwave_spectral import spec
 
 global nmodesP
-nmodesP = 20
+nmodesP = 4
 
 def shifts(M):
 	L = np.zeros((M, M), dtype=object)
@@ -42,7 +42,7 @@ def computeL2forgrid(NM):
 								leftboundary  = lambda x: np.sin(np.pi*x), \
 								rightboundary = lambda y: np.sin(np.pi*y), \
 								potential 	  = None)
-		AF	 = lambda x, y: -np.sin(np.pi*x) + -np.sin(np.pi*y)
+		AF	 = lambda x, y: np.sin(np.pi*x) + np.sin(np.pi*y)
 
 	#--------------------------------------------------------------
 	# Call solver
@@ -67,11 +67,11 @@ def computeL2forgrid(NM):
 		#--------------------------------------------------------------	
 		# Points where you're evaluating the new solution
 		#--------------------------------------------------------------
+		X, Y       = spec.chebnodes(computationaldomain.N), spec.chebnodes(computationaldomain.N)
 		XNEW, YNEW = gridtopatch(NM, index_grid)
-		# print XNEW, YNEW
 
 		#--------------------------------------------------------------
-		# loop over all new points of the solution [SLOW!]
+		# loop over all new points of the solution [SLOW!] [DEBUG]
 		#--------------------------------------------------------------
 		PSOL = np.zeros((len(XNEW), len(YNEW)))
 		for i, _x in enumerate(XNEW):		# all points in x-dir
@@ -83,7 +83,7 @@ def computeL2forgrid(NM):
 					l  = index[1]
 					Tk_x = np.polynomial.chebyshev.chebval(_x, T[k])
 					Tl_y = np.polynomial.chebyshev.chebval(_y, T[l])
-					SUM = SUM + COEFFS[index]*Tk_x*Tl_y
+					SUM  = SUM + COEFFS[index]*Tk_x*Tl_y
 				PSOL[i,j] = SUM
 		
 		#--------------------------------------------------------------
@@ -105,10 +105,15 @@ def computeL2forgrid(NM):
 			# ax.plot_wireframe(XX, YY, PSOL, color='k', linewidth=0.8)
 			# ax.plot_wireframe(XX, YY, ASOL, color='g', linewidth=0.8)		
 
-			plt.subplot(121)
+			plt.subplot(131)
+			plt.contourf(X, Y, domain)
+			plt.colorbar()
+			plt.subplot(132)
 			plt.contourf(XNEW, YNEW, PSOL)
-			plt.subplot(122)
+			plt.colorbar()
+			plt.subplot(133)
 			plt.contourf(XNEW, YNEW, ASOL)
+			plt.colorbar()
 			plt.show()	
 
 		np.set_printoptions(precision=4)
@@ -117,11 +122,11 @@ def computeL2forgrid(NM):
 		#--------------------------------------------------------------
 		AS = np.ravel(ASOL) 	
 		PS = np.ravel(PSOL)
-		print 50*"-"
-		print index_grid
-		print AS
-		print PS
-		print 50*"-"
+		# print 50*"-"
+		# print index_grid
+		# print AS
+		# print PS
+		# print 50*"-"
 		GW = np.ravel(np.outer(spec.chebweights(nmodesP), \
 								spec.chebweights(nmodesP)))
 		L2 = np.sqrt(np.abs(np.dot(GW, (PS-AS)**2.0)/np.abs(np.dot(GW, AS**2.0))))

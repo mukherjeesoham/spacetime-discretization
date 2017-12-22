@@ -10,7 +10,7 @@ np.set_printoptions(precision=4)
 x, y   = spec.chebnodes(28), spec.chebnodes(28)
 xx, yy = np.meshgrid(x, y) 
 zz     = np.exp(-(xx)**2.0) + np.exp(-(yy)**2.0)
-f      = lambda x, y: np.exp(-(x)**2.0) + np.exp(-(y)**2.0)
+f      = lambda x, y: np.exp(-(x)**2.0/0.1) + np.exp(-(y)**2.0/0.1)
 print "- Computing analytic solution."
 
 # project the analytic function
@@ -23,7 +23,7 @@ print "- Finished projecting analytic solution."
 AS = np.ravel(zz) 	# renaming vars
 PS = np.ravel(zzP)
 GW = np.ravel(np.outer(spec.chebweights(28), spec.chebweights(28)))
-print "+ L2 error nomr:", np.sqrt(np.abs(np.dot(GW, (PS-AS)**2.0)/np.abs(np.dot(GW, AS**2.0))))
+print "+ L2 error norm:", np.sqrt(np.abs(np.dot(GW, (PS-AS)**2.0)/np.abs(np.dot(GW, AS**2.0))))
 
 if(0):
 	import matplotlib.pyplot as plt

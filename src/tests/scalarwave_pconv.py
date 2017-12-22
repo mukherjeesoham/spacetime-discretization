@@ -102,7 +102,7 @@ def computeL2forpatch(NM):
 	#--------------------------------------------------------------
 	# Plot the solution if necessary
 	#--------------------------------------------------------------
-	if(0):
+	if(1):
 		import matplotlib.pyplot as plt
 		from mpl_toolkits.mplot3d import Axes3D
 		fig = plt.figure()
@@ -114,13 +114,15 @@ def computeL2forpatch(NM):
 		
 		XX, YY = np.meshgrid(spec.chebnodes(computationaldomain.N*2+1), \
 								spec.chebnodes(computationaldomain.N*2+1))
+
+		print (ASOL - PSOL)
 		ax.plot_wireframe(XX, YY, PSOL, color='k', linewidth=0.8)
 		ax.plot_wireframe(XX, YY, ASOL, color='g', linewidth=0.8)		
 		plt.show()	
 	return L2
 
 
-if(0):
+if(1):
 	print "- L2 error norm: %r"%computeL2forpatch(15)
 else:
 	for i in range(2, 20):

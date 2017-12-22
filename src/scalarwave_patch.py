@@ -143,3 +143,19 @@ class patch(spec):
 					ax.add_patch(patches.Rectangle((CX[i], CY[j]), CX[i+1] - CX[i], CY[j+1] - CY[j], \
 					fill=False, linewidth=0.2))
 		return ax
+
+		def computevaluesonpatch(self, COEFFS, X, Y):
+			"""
+			The function takes in a 2D array of
+			coefficents and the points where
+			you want to evaluate the function i.e, [X1, X2]
+			X, Y are patch-local coordinates which are the same
+			as the global coordinates when npatch=1
+			"""	
+			assert np.shape(COEFFS) == [self.N, self.N]
+			return np.polynomial.chebyshev.chebval2d(X, Y, COEFFS)
+
+
+
+
+

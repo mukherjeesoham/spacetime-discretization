@@ -97,6 +97,15 @@ class spec(object):
 		return VALS
 
 	@staticmethod
+	def computevalues2D(COEFF, X):
+		VNDM   = spec.vandermonde(len(X)-1, X)
+		VNDM2D = np.kron(VNDM, VNDM)
+		FN 	   = np.zeros(len(X)**2)
+		for i, _x in enumerate(VNDM2D):
+			FN[i] = np.dot(_x, np.ravel(COEFF))
+		return np.reshape(FN, (len(X), len(X)))
+
+	@staticmethod
 	def projectfunction2D(function, nmodes, X):
 		"""
 		Project a 2D function (potential) on a patch
@@ -108,20 +117,25 @@ class spec(object):
 		IP    = np.zeros((M+1, M+1))
 		for m in range(M+1):
 			for n in range(M+1):
-				IP[m, n] = integrate.nquad(lambda x, y: function(np.cos(x), np.cos(y))*np.cos(m*x)*np.cos(n*y), \
-					[[0, np.pi],[0, np.pi]])[0]
-				
+				I = integrate.nquad(lambda x, y: function(np.cos(x), np.cos(y))*np.cos(m*x)*np.cos(n*y), \
+					[[0, np.pi],[0, np.pi]], opts={"epsabs": 1e-15})
+				IP[m,n] = I[0]
+
 		# FIXME: Perhaps we are doing this wrong
 		COEFFS  = np.linalg.solve(M2DX, np.ravel(IP)) 
-		VALS    = spec.computevalues2D(COEFFS, X)
-		return VALS
 
-	@staticmethod
-	def computevalues2D(COEFF, X):
-		VNDM   = spec.vandermonde(len(X)-1, X)
-		VNDM2D = np.kron(VNDM, VNDM)
-		FN 	   = np.zeros(len(X)**2)
-		for i, _x in enumerate(VNDM2D):
-			FN[i] = np.dot(_x, np.ravel(COEFF))
-		return np.reshape(FN, (len(X), len(X)))
+
+		PSOL = np.zeros((computationaldomain.N*2 + 2, computationaldomain.N*2 + 2))
+		for i, _x in enumerate(XNEW):		# all points in x-dir
+			for j, _y in enumerate(YNEW):	# all points in y-dir			
+				SUM = 0
+				T   = np.eye(100)
+				for index, value in np.ndenumerate(COEFFS):	# sum over all coefficents
+					k  = index[0]
+					l  = index[1]
+					Tk_x = np.polynomial.chebyshev.chebval(_x, T[k])
+					Tl_y = np.polynomial.chebyshev.chebval(_y, T[l])
+					SUM = SUM + COEFFS[index]*Tk_x*Tl_y
+				PSOL[i,j] = SUM
+		return PSOL
 

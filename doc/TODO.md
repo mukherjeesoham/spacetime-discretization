@@ -1,11 +1,6 @@
 ### Adding Physics
 ---
-+ Formulate and implement the problem as the variation of a discretized action for the scalar wave equation [D
-+ Implement null coordinates [D]
-+ Implement a multi-patch system for computing the entire domain piecewise [D]
 + Implement futures for asynchronous computing of the patches [D]
-+ Consistently include the potential in the code [D]
-+ Implement a single patch to a global patch structure for computing with arbitrary potentials [W]
 + Solve in the conformally compactified Minkowski spacetime [R]
 + Formulate the problem in terms of action with Lagrange multipliers for boundary conditions
 + Find a matrix algebra formulation for GR

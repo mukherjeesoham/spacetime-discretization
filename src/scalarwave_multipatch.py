@@ -7,6 +7,8 @@ import numpy as np
 from scipy.integrate import quad, dblquad
 from scalarwave_spectral import spec
 from scalarwave_patch import patch
+from time import localtime, strftime
+import os
 
 class multipatch(object):
 	"""
@@ -106,6 +108,7 @@ class multipatch(object):
 				CX, CY, XP, YP = self.gridtopatch(PATCH, index) 	
 				patch.plotpatch(ax, domain[index[0], index[1]], CX, CY, XP, YP, RANGE)
 
-		plt.show()
-
+		if not os.path.exists("./output"):
+		        os.makedirs("./output")
+		plt.savefig("./output/%s-grid.png"%strftime("%Y-%m-%d %H:%M:%S", localtime()))
 		return domain

@@ -1,3 +1,3 @@
-## spacetime-discretization
+# spacetime-discretization
 
-Solve a scalar wave equation using spacetime discretization methods.
+Solve a scalar wave equation using spacetime discretization methods in Python.
